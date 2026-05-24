@@ -177,6 +177,43 @@ input[type=range]{accent-color:var(--gold);flex:1;height:4px}
   .content{padding:14px}
   .home-grid{grid-template-columns:1fr}
 }
+
+/* ========= STATS PANEL ========= */
+.stats-chart-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.stats-bar-label{width:90px;font-size:12px;text-align:right;flex-shrink:0}
+.stats-bar-track{flex:1;height:20px;background:var(--navy3);border-radius:5px;overflow:hidden}
+.stats-bar-fill{height:100%;border-radius:5px;transition:width .6s ease;display:flex;align-items:center;padding-right:6px;justify-content:flex-end}
+.stats-bar-num{font-size:10px;color:rgba(255,255,255,.85);font-weight:600}
+.freq-table{width:100%;border-collapse:collapse;font-size:13px}
+.freq-table th{background:var(--navy3);color:var(--text3);padding:9px 12px;text-align:right;font-size:11px;font-weight:600}
+.freq-table td{padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
+.freq-table tr:hover td{background:rgba(255,255,255,.02)}
+
+/* ========= CONFUSION MATRIX ========= */
+.cm-wrap{overflow-x:auto}
+.cm-table{border-collapse:collapse;font-size:11px;direction:ltr;margin:auto}
+.cm-table th,.cm-table td{border:1px solid rgba(255,255,255,.1);padding:7px 12px;text-align:center;min-width:55px}
+.cm-table th{background:var(--navy3);font-weight:600}
+
+/* ========= CORPUS SEARCH ========= */
+.corpus-search{display:flex;gap:8px;margin-bottom:12px;align-items:center}
+.corpus-search-input{flex:1;background:var(--navy3);border:1px solid var(--border);border-radius:8px;padding:9px 14px;color:var(--text);font-size:13px;font-family:inherit;outline:none;direction:rtl}
+.corpus-search-input:focus{border-color:var(--gold)}
+
+/* ========= CONCORDANCE ========= */
+.concord-item{padding:11px 14px;background:var(--navy3);border-radius:8px;margin-bottom:8px;font-size:13px;line-height:1.9}
+.concord-doc-title{font-size:10px;color:var(--text3);margin-bottom:5px;font-weight:600;letter-spacing:.4px}
+.concord-hit{background:rgba(201,168,76,.25);color:var(--gold2);border-radius:3px;padding:1px 5px;font-weight:700}
+
+/* ========= PRINT ========= */
+@media print{
+  .header,.tabs,.btn-group,button,.notif{display:none!important}
+  #panel-stats{display:block!important}
+  body,html{background:#fff!important;color:#000!important}
+  .card{border:1px solid #ccc!important;page-break-inside:avoid;background:#fff!important}
+  .metric-val,.metric-lbl,.card-title,.stats-bar-num{color:#000!important}
+  .stats-bar-track{background:#eee!important}
+}
 </style>
 </head>
 <body>
@@ -214,6 +251,7 @@ input[type=range]{accent-color:var(--gold);flex:1;height:4px}
   <div class="tab" onclick="switchTab('eval')">🧪 التقييم والاختبار</div>
   <div class="tab" onclick="switchTab('extract')">🔍 الاستخراج التلقائي</div>
   <div class="tab" onclick="switchTab('corpus')">🗄️ إدارة المدونة</div>
+  <div class="tab" onclick="switchTab('stats')">📊 الإحصاءات</div>
 </div>
 
 <!-- ====== MAIN CONTENT ====== -->
@@ -347,6 +385,7 @@ input[type=range]{accent-color:var(--gold);flex:1;height:4px}
       <div class="text-display" id="annotate-display" onmouseup="handleSelection()"></div>
       <div class="btn-group" style="margin-top:14px">
         <button class="btn btn-gold" onclick="saveAnnotatedDoc()">💾 حفظ في المدونة</button>
+        <button class="btn btn-outline" onclick="undoAnnotation()">↩️ تراجع</button>
         <button class="btn btn-danger" onclick="clearAnnotations()">↺ مسح جميع التعليقات</button>
       </div>
     </div>
@@ -384,7 +423,12 @@ input[type=range]{accent-color:var(--gold);flex:1;height:4px}
         <div id="per-class-metrics"></div>
       </div>
       <div class="card">
-        <div class="card-title">📝 نماذج من مجموعة الاختبار</div>
+        <div class="card-title">� مصفوفة الالتباس (النوع الرئيسي)</div>
+        <div id="eval-confusion-matrix"></div>
+        <div style="font-size:10px;color:var(--text3);margin-top:8px">✅ القطر الرئيسي = تصنيف صحيح &nbsp;|&nbsp; 🔴 خارج القطر = خطأ في التصنيف</div>
+      </div>
+      <div class="card">
+        <div class="card-title">�📝 نماذج من مجموعة الاختبار</div>
         <div id="eval-samples"></div>
       </div>
     </div>
@@ -455,13 +499,33 @@ input[type=range]{accent-color:var(--gold);flex:1;height:4px}
       <button class="btn btn-gold" onclick="switchTab('train')">➕ إضافة نص جديد</button>
       <button class="btn btn-outline" onclick="importCorpus()">📂 استيراد JSON</button>
       <button class="btn btn-outline" onclick="exportCorpus()">⬇ تصدير المدونة</button>
+      <button class="btn btn-outline" onclick="exportCoNLL()">📄 تصدير CoNLL</button>
       <button class="btn btn-outline" onclick="loadDefaultCorpus()">📥 تحميل القاعدة الافتراضية</button>
       <button class="btn btn-danger" onclick="clearCorpus()">🗑️ حذف الكل</button>
+    </div>
+
+    <div class="corpus-search">
+      <input class="corpus-search-input" type="text" id="corpus-search-input"
+        placeholder="🔍 ابحث في العناوين أو الكيانات..." oninput="renderCorpus()">
+      <span style="font-size:11px;color:var(--text3);white-space:nowrap" id="corpus-count-label"></span>
     </div>
 
     <div id="corpus-list"></div>
 
   </div><!-- /panel-corpus -->
+
+  <!-- ===== PANEL: STATS ===== -->
+  <div id="panel-stats" class="panel">
+    <div class="btn-group">
+      <button class="btn btn-outline" onclick="printReport()">🖨️ طباعة التقرير</button>
+    </div>
+    <div id="stats-content">
+      <div class="empty-state">
+        <div class="empty-icon">📊</div>
+        <div class="empty-title">انتظر...</div>
+      </div>
+    </div>
+  </div><!-- /panel-stats -->
 
 </div><!-- /content -->
 </div><!-- /app -->
@@ -516,6 +580,8 @@ let corpus = [];
 let currentDoc = { title:'', text:'', annotations:[] };
 let selectedEntityType = 'PERSON.RESEARCHER';
 let lastExtracted = [];
+let annotationHistory = [];
+let _statsTopEnts = [];
 
 /* ========================================================
    PERSISTENCE
@@ -791,12 +857,13 @@ function notify(msg){
 }
 
 function switchTab(t){
-  const keys = ['home','train','eval','extract','corpus'];
+  const keys = ['home','train','eval','extract','corpus','stats'];
   document.querySelectorAll('.tab').forEach((el,i)=>
     el.classList.toggle('active', keys[i]===t));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('panel-'+t).classList.add('active');
   if(t==='corpus') renderCorpus();
+  if(t==='stats')  renderStats();
 }
 
 function escHtml(s){
@@ -874,6 +941,7 @@ function loadTrainText(){
   const text  = document.getElementById('train-input').value.trim();
   if(!text){ notify('⚠️ أدخل نصًا أولًا'); return; }
   currentDoc = { title, text, annotations:[] };
+  annotationHistory = [];
   renderAnnotateDisplay();
   document.getElementById('annotation-card').style.display = 'block';
   document.getElementById('train-entities-card').style.display = 'none';
@@ -950,10 +1018,9 @@ function handleSelection(){
     notify('⚠️ هذا النص متداخل مع تعليق موجود — انقر على الكيان لحذفه أولًا');
     sel.removeAllRanges(); return;
   }
-  currentDoc.annotations.push({
-    text: selText, type: selectedEntityType,
-    start: idx, end: idx + selText.length
-  });
+  const newAnn = {text:selText, type:selectedEntityType, start:idx, end:idx+selText.length};
+  currentDoc.annotations.push(newAnn);
+  annotationHistory.push(newAnn);
   currentDoc.annotations.sort((a,b)=>a.start-b.start);
   sel.removeAllRanges();
   renderAnnotateDisplay();
@@ -972,6 +1039,7 @@ function removeAnnotation(start, end){
 function clearAnnotations(){
   if(!currentDoc.annotations.length){ notify('لا توجد تعليقات'); return; }
   currentDoc.annotations = [];
+  annotationHistory = [];
   renderAnnotateDisplay();
   notify('↺ تم مسح جميع التعليقات');
 }
@@ -1314,6 +1382,36 @@ function runEvaluation(){
   document.getElementById('per-class-metrics').innerHTML =
     classHtml || '<div style="color:var(--text3);font-size:12px">لا توجد بيانات كافية لحساب المقاييس</div>';
 
+  // Confusion matrix (parent-level)
+  const pKeys = ENTITY_HIERARCHY.map(g=>g.key);
+  const cm = {};
+  for(const r of pKeys){ cm[r]={}; for(const c of pKeys) cm[r][c]=0; }
+  for(const doc of testSet){
+    const pred = extractEntities(doc.text);
+    for(const g of (doc.annotations||[])){
+      const gp = (ENTITY_TYPES[g.type]||{parent:'?'}).parent;
+      const pm = pred.find(p=>p.text===g.text);
+      if(pm){ const pp=(ENTITY_TYPES[pm.type]||{parent:'?'}).parent; if(cm[gp]&&cm[gp][pp]!==undefined) cm[gp][pp]++; }
+    }
+  }
+  let cmHtml = `<div class="cm-wrap"><table class="cm-table"><thead><tr>
+    <th style="text-align:right;direction:rtl">الفعلي \\ المتوقع</th>`;
+  for(const g of ENTITY_HIERARCHY) cmHtml+=`<th style="color:${g.hex}">${g.label}</th>`;
+  cmHtml+='</tr></thead><tbody>';
+  for(const g of ENTITY_HIERARCHY){
+    cmHtml+=`<tr><th style="text-align:right;direction:rtl;color:${g.hex}">${g.label}</th>`;
+    for(const g2 of ENTITY_HIERARCHY){
+      const v=cm[g.key]?.[g2.key]||0, isD=g.key===g2.key;
+      const bg=v===0?'transparent':isD?`${g.hex}30`:'rgba(229,115,115,.18)';
+      const col=v===0?'var(--text3)':isD?g.hex:'#e57373';
+      cmHtml+=`<td style="background:${bg};color:${col};font-weight:${v>0?700:400}">${v}</td>`;
+    }
+    cmHtml+='</tr>';
+  }
+  cmHtml+='</tbody></table></div>';
+  const cmEl=document.getElementById('eval-confusion-matrix');
+  if(cmEl) cmEl.innerHTML=cmHtml;
+
   let sampHtml = '';
   for(const doc of testSet.slice(0,3)){
     const pred = extractEntities(doc.text);
@@ -1336,16 +1434,24 @@ function runEvaluation(){
    CORPUS MANAGEMENT
    ======================================================== */
 function renderCorpus(){
+  const query = (document.getElementById('corpus-search-input')?.value || '').trim();
+  const filtered = query
+    ? corpus.filter(d => d.title.includes(query) || (d.annotations||[]).some(a=>a.text.includes(query)))
+    : corpus;
+  const lbl = document.getElementById('corpus-count-label');
+  if(lbl) lbl.textContent = `${filtered.length} / ${corpus.length} نص`;
   const list = document.getElementById('corpus-list');
-  if(!corpus.length){
-    list.innerHTML = `<div class="empty-state">
-      <div class="empty-icon">🗄️</div>
-      <div class="empty-title">المدونة فارغة</div>
-      <div>أضف نصوصًا مُعلَّقة من تبويب التدريب والتعليق</div>
-    </div>`;
+  if(!filtered.length){
+    list.innerHTML = corpus.length===0
+      ? `<div class="empty-state"><div class="empty-icon">🗄️</div>
+          <div class="empty-title">المدونة فارغة</div>
+          <div>أضف نصوصًا مُعلَّقة من تبويب التدريب والتعليق</div></div>`
+      : `<div class="empty-state"><div class="empty-icon">🔍</div>
+          <div class="empty-title">لا توجد نتائج مطابقة</div>
+          <div>جرّب كلمة بحث أخرى</div></div>`;
     return;
   }
-  list.innerHTML = corpus.map(doc=>{
+  list.innerHTML = filtered.map(doc=>{
     const counts={};
     for(const a of (doc.annotations||[])) counts[a.type]=(counts[a.type]||0)+1;
     const tagsHtml = Object.entries(counts).map(([t,n])=>{
@@ -1418,6 +1524,170 @@ function handleImport(e){
   };
   reader.readAsText(file);
   e.target.value='';
+}
+
+/* ========================================================
+   UNDO ANNOTATION
+   ======================================================== */
+function undoAnnotation(){
+  if(!annotationHistory.length){ notify('لا يوجد تعليق للتراجع عنه'); return; }
+  const last = annotationHistory.pop();
+  currentDoc.annotations = currentDoc.annotations.filter(
+    a => !(a.start===last.start && a.end===last.end)
+  );
+  renderAnnotateDisplay();
+  notify('↩️ تم التراجع عن آخر تعليق');
+}
+
+/* ========================================================
+   STATS PANEL
+   ======================================================== */
+function renderStats(){
+  const parentCounts={}, subCounts={}, freqMap={};
+  for(const g of ENTITY_HIERARCHY) parentCounts[g.key]=0;
+  for(const t of Object.keys(ENTITY_TYPES)) subCounts[t]=0;
+  for(const doc of corpus){
+    for(const a of (doc.annotations||[])){
+      const et=ENTITY_TYPES[a.type];
+      if(et){ parentCounts[et.parent]=(parentCounts[et.parent]||0)+1; subCounts[a.type]=(subCounts[a.type]||0)+1; }
+      freqMap[a.text]=freqMap[a.text]||{count:0,type:a.type};
+      freqMap[a.text].count++;
+    }
+  }
+  const total=Object.values(parentCounts).reduce((s,v)=>s+v,0);
+  const maxP=Math.max(...Object.values(parentCounts),1);
+  const maxS=Math.max(...Object.values(subCounts),1);
+
+  let h=`<div class="metrics-grid" style="margin-bottom:16px">
+    <div class="metric-card"><div class="metric-val">${corpus.length}</div><div class="metric-lbl">نص تدريبي</div></div>
+    <div class="metric-card"><div class="metric-val" style="color:var(--gold)">${total}</div><div class="metric-lbl">إجمالي الكيانات</div></div>
+    <div class="metric-card"><div class="metric-val" style="color:var(--person)">${Object.keys(freqMap).length}</div><div class="metric-lbl">كيان فريد</div></div>
+    <div class="metric-card"><div class="metric-val" style="color:var(--location)">${corpus.length>0?(total/corpus.length).toFixed(1):0}</div><div class="metric-lbl">متوسط / نص</div></div>
+  </div>`;
+
+  // Bar chart by parent type
+  h+=`<div class="card"><div class="card-title">📊 توزيع الكيانات حسب النوع الرئيسي</div>`;
+  for(const g of ENTITY_HIERARCHY){
+    const cnt=parentCounts[g.key]||0, pct=total>0?(cnt/total*100).toFixed(1):0, bw=cnt/maxP*100;
+    h+=`<div class="stats-chart-row">
+      <span class="stats-bar-label" style="color:${g.hex}">${g.label}</span>
+      <div class="stats-bar-track"><div class="stats-bar-fill" style="width:${bw}%;background:${g.hex}99">
+        <span class="stats-bar-num">${cnt}</span>
+      </div></div>
+      <span style="font-size:11px;color:var(--text3);min-width:42px">${pct}%</span>
+    </div>`;
+  }
+  h+=`</div>`;
+
+  // Sub-type breakdown
+  h+=`<div class="card"><div class="card-title">📋 توزيع الكيانات حسب النوع الفرعي</div>`;
+  for(const g of ENTITY_HIERARCHY){
+    h+=`<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:700;color:${g.hex};margin-bottom:6px">▸ ${g.label}</div>`;
+    for(const ck of g.children){
+      const et=ENTITY_TYPES[ck], cnt=subCounts[ck]||0, bw=cnt/maxS*100;
+      h+=`<div class="stats-chart-row" style="margin-bottom:4px">
+        <span class="stats-bar-label" style="font-size:11px;color:${et.hex};width:110px">${et.label}</span>
+        <div class="stats-bar-track" style="height:15px"><div class="stats-bar-fill" style="width:${bw}%;background:${et.hex}99;height:100%">
+          <span class="stats-bar-num" style="font-size:9px">${cnt}</span>
+        </div></div>
+      </div>`;
+    }
+    h+=`</div>`;
+  }
+  h+=`</div>`;
+
+  // Top entities frequency table
+  _statsTopEnts=[];
+  const topEnts=Object.entries(freqMap).sort((a,b)=>b[1].count-a[1].count).slice(0,15);
+  if(topEnts.length){
+    topEnts.forEach(([txt])=>_statsTopEnts.push(txt));
+    h+=`<div class="card"><div class="card-title">🏆 أكثر الكيانات تكراراً</div>
+    <div style="overflow-x:auto"><table class="freq-table">
+      <thead><tr><th>#</th><th>الكيان</th><th>النوع</th><th>التكرار</th><th>سياق</th></tr></thead>
+      <tbody>`;
+    topEnts.forEach(([txt,{count,type}],i)=>{
+      const et=ENTITY_TYPES[type]||{label:type,hex:'#888',parent:type};
+      h+=`<tr>
+        <td style="color:var(--text3)">${i+1}</td>
+        <td><span class="ent-span" data-parent="${et.parent}" data-type="${type}" style="cursor:default">${escHtml(txt)}</span></td>
+        <td><span style="color:${et.hex};font-size:12px">${et.label}</span></td>
+        <td style="color:var(--gold);font-weight:700;text-align:center">${count}</td>
+        <td><button class="btn btn-outline btn-sm" onclick="showConcordance(_statsTopEnts[${i}])">🔎 سياق</button></td>
+      </tr>`;
+    });
+    h+=`</tbody></table></div></div>`;
+  }
+
+  // Concordance section (populated on demand)
+  h+=`<div id="concord-section" class="card" style="display:none">
+    <div class="card-title">🔎 سياقات الكيان: <span id="concord-entity-name" style="color:var(--gold2)"></span></div>
+    <div id="concord-list"></div>
+  </div>`;
+
+  document.getElementById('stats-content').innerHTML=h;
+}
+
+function showConcordance(entity){
+  const section=document.getElementById('concord-section');
+  if(!section){ renderStats(); setTimeout(()=>showConcordance(entity),100); return; }
+  section.style.display='block';
+  document.getElementById('concord-entity-name').textContent='"'+entity+'"';
+  const hits=corpus.filter(doc=>(doc.annotations||[]).some(a=>a.text===entity));
+  const safeEnt=escHtml(entity).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  document.getElementById('concord-list').innerHTML=hits.length
+    ? hits.map(doc=>{
+        const hi=escHtml(doc.text).replace(new RegExp(safeEnt,'g'),`<span class="concord-hit">${escHtml(entity)}</span>`);
+        return `<div class="concord-item">
+          <div class="concord-doc-title">${escHtml(doc.title)}</div>
+          <div>${hi}</div>
+        </div>`;
+      }).join('')
+    : `<div style="color:var(--text3);font-size:12px">لا يوجد في المدونة الحالية</div>`;
+  section.scrollIntoView({behavior:'smooth'});
+}
+
+/* ========================================================
+   EXPORT CoNLL
+   ======================================================== */
+function exportCoNLL(){
+  if(!corpus.length){ notify('المدونة فارغة'); return; }
+  let out='';
+  for(const doc of corpus){
+    out+=`# doc_id = ${doc.id}\n# title = ${doc.title}\n`;
+    const text=doc.text;
+    const anns=[...(doc.annotations||[])].sort((a,b)=>a.start-b.start);
+    const toks=[];
+    let pos=0;
+    for(const part of text.split(/(\s+)/)){
+      if(!part){ continue; }
+      if(/^\s+$/.test(part)){ pos+=part.length; continue; }
+      toks.push({text:part, start:pos, end:pos+part.length});
+      pos+=part.length;
+    }
+    for(const tok of toks){
+      let tag='O';
+      for(const a of anns){
+        if(tok.start>=a.start && tok.end<=a.end){
+          tag=(tok.start===a.start?'B-':'I-')+a.type; break;
+        }
+      }
+      out+=tok.text+'\t'+tag+'\n';
+    }
+    out+='\n';
+  }
+  downloadFile('corpus_ner.conll','text/plain;charset=utf-8',out);
+  notify('⬇ تم تصدير المدونة بصيغة CoNLL');
+}
+
+/* ========================================================
+   PRINT REPORT
+   ======================================================== */
+function printReport(){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-stats').classList.add('active');
+  const keys=['home','train','eval','extract','corpus','stats'];
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',keys[i]==='stats'));
+  window.print();
 }
 
 /* ========================================================
