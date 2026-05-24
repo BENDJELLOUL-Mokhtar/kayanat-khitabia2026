@@ -455,6 +455,7 @@ input[type=range]{accent-color:var(--gold);flex:1;height:4px}
       <button class="btn btn-gold" onclick="switchTab('train')">➕ إضافة نص جديد</button>
       <button class="btn btn-outline" onclick="importCorpus()">📂 استيراد JSON</button>
       <button class="btn btn-outline" onclick="exportCorpus()">⬇ تصدير المدونة</button>
+      <button class="btn btn-outline" onclick="loadDefaultCorpus()">📥 تحميل القاعدة الافتراضية</button>
       <button class="btn btn-danger" onclick="clearCorpus()">🗑️ حذف الكل</button>
     </div>
 
@@ -537,43 +538,246 @@ function updateHeaderStats(){
     corpus.reduce((s,d)=>s+(d.annotations||[]).length, 0);
 }
 
-function seedSampleData(){
-  corpus = [
+/* helper: locate needle in haystack and return annotation object */
+function _ann(needle, haystack, type){
+  const start = haystack.indexOf(needle);
+  if(start === -1) console.warn('[seed] لم يُعثر على:', needle);
+  return {text:needle, type:type, start:start, end:start + needle.length};
+}
+
+function _buildDefaultCorpus(){
+  const texts = {
+    t01:'أشار الدكتور خليل حليمي في مؤتمر قسنطينة سنة 2019 إلى أن جامعة تيارت في ولاية تيارت تضطلع بتطوير البحث العلمي.',
+    t02:'انعقد الملتقى الوطني للغويات في مدينة وهران سنة 2021 برئاسة الأستاذ نعمان بوقرة من وزارة التعليم العالي.',
+    t03:'نشرت الباحثة سامية بن عمر بحثها في مجلة اللسان العربي التابعة لجامعة الجزائر خلال القرن الحادي والعشرين بمدينة الرباط.',
+    t04:'أصدر المؤلف عبد القادر فيدوح مؤلَّفه الأول في مجلة فصول الأدبية عام 1995 من مدينة القاهرة.',
+    t05:'حضر الدكتور عبد الرحمان طعمة ندوة الخطاب الأكاديمي في جامعة باتنة بولاية باتنة سنة 2018.',
+    t06:'أسهم الباحث محمد خان في تطوير مختبر الخطاب والتواصل بجامعة سطيف في ولاية سطيف منذ التسعينيات.',
+    t07:'أقام مركز تطوير المناهج بمدينة الرياض حلقة دراسية في القرن الحادي والعشرين بمشاركة الكاتب سليم مراد.',
+    t08:'حصل الطالب كريم بوزيد على منحة من وزارة البحث العلمي لإكمال دراسته في دولة فرنسا عام 2020.',
+    t09:'عقد المؤتمر الدولي للدراسات اللغوية بمدينة تونس سنة 2017 بمشاركة الأستاذ يوسف وغليسي من جامعة قسنطينة.',
+    t10:'نشر المؤلف أحمد يوسف بحثه في مجلة الخطاب الصادرة عن مركز الدراسات اللغوية في مدينة الجزائر سنة 2022.',
+    t11:'أسست الباحثة ليلى بن يونس مختبر الدراسات النصية بجامعة تلمسان في منطقة الغرب الجزائري عام 2010.',
+    t12:'شارك الدكتور مصطفى درواز في ندوة اللسانيات التطبيقية بمدينة مراكش التي نظمتها دولة المغرب سنة 2016.',
+    t13:'تبحث الباحثة فاطمة الزهراء شريف في موقع مكتبة ابن رشد الرقمية التابعة لجامعة الجزائر في القرن الحادي والعشرين.',
+    t14:'أنجز الطالب عمر بلقاسم أطروحته بإشراف الأستاذة نور الهدى زيدان بجامعة عنابة في ولاية عنابة عام 2023.',
+    t15:'تناولت الباحثة رشيدة بن دريد في مجلة تحليل الخطاب مسألة التلفظ لدى المؤلف حسن فاسي الفهري خلال الملتقى الدولي للأسلوبية في مدينة فاس.',
+    t16:'ألقى الأستاذ عمار بلحسن محاضرة في جامعة وهران بتاريخ 15-03-2019 ضمن مؤتمر الدراسات البلاغية.',
+    t17:'التحق الطالب زياد بن عمار بوزارة التربية الوطنية في حقبة التسعينيات لدراسة اللغة في دولة الجزائر ونشر في مجلة الآداب.',
+    t18:'أجرى الباحث عبد العزيز حمودة تجربته في مدينة بسكرة بتاريخ 10-11-2021 في مختبر اللسانيات التطبيقية خلال حلقة دراسية.',
+  };
+  const a = _ann;
+  return [
     {
-      id:1001, title:'نموذج 1 — مؤتمر اللسانيات في تيارت',
-      text:'أشار الدكتور خليل حليمي في مؤتمر قسنطينة سنة 2019 إلى أن جامعة تيارت في ولاية تيارت تضطلع بتطوير البحث العلمي.',
+      id:1001, title:'مؤتمر اللسانيات في تيارت',
+      text: texts.t01,
       annotations:[
-        {text:'الدكتور خليل حليمي', type:'PERSON.RESEARCHER', start:5,  end:23},
-        {text:'مؤتمر قسنطينة',      type:'EVENT.CONFERENCE',  start:27, end:41},
-        {text:'سنة 2019',            type:'TIME.YEAR',         start:42, end:50},
-        {text:'جامعة تيارت',        type:'ORG.UNIVERSITY',    start:58, end:69},
-        {text:'ولاية تيارت',        type:'LOCATION.REGION',   start:73, end:84},
+        a('الدكتور خليل حليمي',   texts.t01, 'PERSON.RESEARCHER'),
+        a('مؤتمر قسنطينة',        texts.t01, 'EVENT.CONFERENCE'),
+        a('سنة 2019',              texts.t01, 'TIME.YEAR'),
+        a('جامعة تيارت',          texts.t01, 'ORG.UNIVERSITY'),
+        a('ولاية تيارت',          texts.t01, 'LOCATION.REGION'),
       ]
     },
     {
-      id:1002, title:'نموذج 2 — الملتقى الوطني للغويات',
-      text:'انعقد الملتقى الوطني للغويات في مدينة وهران سنة 2021 برئاسة الأستاذ نعمان بوقرة من وزارة التعليم العالي.',
+      id:1002, title:'الملتقى الوطني للغويات — وهران',
+      text: texts.t02,
       annotations:[
-        {text:'الملتقى الوطني للغويات', type:'EVENT.SYMPOSIUM',  start:6,  end:28},
-        {text:'مدينة وهران',            type:'LOCATION.CITY',    start:32, end:43},
-        {text:'سنة 2021',               type:'TIME.YEAR',         start:44, end:52},
-        {text:'الأستاذ نعمان بوقرة',   type:'PERSON.PROFESSOR', start:61, end:80},
-        {text:'وزارة التعليم العالي',  type:'ORG.MINISTRY',     start:84, end:104},
+        a('الملتقى الوطني للغويات', texts.t02, 'EVENT.SYMPOSIUM'),
+        a('مدينة وهران',            texts.t02, 'LOCATION.CITY'),
+        a('سنة 2021',               texts.t02, 'TIME.YEAR'),
+        a('الأستاذ نعمان بوقرة',   texts.t02, 'PERSON.PROFESSOR'),
+        a('وزارة التعليم العالي',  texts.t02, 'ORG.MINISTRY'),
       ]
     },
     {
-      id:1003, title:'نموذج 3 — مجلة اللسان العربي وجامعة الجزائر',
-      text:'نشرت الباحثة سامية بن عمر بحثها في مجلة اللسان العربي التابعة لجامعة الجزائر خلال القرن الحادي والعشرين بمدينة الرباط.',
+      id:1003, title:'مجلة اللسان العربي وجامعة الجزائر',
+      text: texts.t03,
       annotations:[
-        {text:'الباحثة سامية بن عمر',   type:'PERSON.RESEARCHER', start:6,  end:26},
-        {text:'مجلة اللسان العربي',     type:'ORG.JOURNAL',       start:35, end:53},
-        {text:'جامعة الجزائر',          type:'ORG.UNIVERSITY',    start:63, end:76},
-        {text:'القرن الحادي والعشرين', type:'TIME.CENTURY',      start:83, end:104},
-        {text:'مدينة الرباط',           type:'LOCATION.CITY',     start:106,end:118},
+        a('الباحثة سامية بن عمر',  texts.t03, 'PERSON.RESEARCHER'),
+        a('مجلة اللسان العربي',    texts.t03, 'ORG.JOURNAL'),
+        a('جامعة الجزائر',         texts.t03, 'ORG.UNIVERSITY'),
+        a('القرن الحادي والعشرين', texts.t03, 'TIME.CENTURY'),
+        a('مدينة الرباط',          texts.t03, 'LOCATION.CITY'),
+      ]
+    },
+    {
+      id:1004, title:'عبد القادر فيدوح ومجلة فصول الأدبية',
+      text: texts.t04,
+      annotations:[
+        a('المؤلف عبد القادر فيدوح', texts.t04, 'PERSON.AUTHOR'),
+        a('مجلة فصول الأدبية',       texts.t04, 'ORG.JOURNAL'),
+        a('عام 1995',                 texts.t04, 'TIME.YEAR'),
+        a('مدينة القاهرة',           texts.t04, 'LOCATION.CITY'),
+      ]
+    },
+    {
+      id:1005, title:'ندوة الخطاب الأكاديمي — جامعة باتنة',
+      text: texts.t05,
+      annotations:[
+        a('الدكتور عبد الرحمان طعمة', texts.t05, 'PERSON.RESEARCHER'),
+        a('ندوة الخطاب الأكاديمي',    texts.t05, 'EVENT.SEMINAR'),
+        a('جامعة باتنة',              texts.t05, 'ORG.UNIVERSITY'),
+        a('ولاية باتنة',              texts.t05, 'LOCATION.REGION'),
+        a('سنة 2018',                 texts.t05, 'TIME.YEAR'),
+      ]
+    },
+    {
+      id:1006, title:'مختبر الخطاب والتواصل — جامعة سطيف',
+      text: texts.t06,
+      annotations:[
+        a('الباحث محمد خان',         texts.t06, 'PERSON.RESEARCHER'),
+        a('مختبر الخطاب والتواصل',   texts.t06, 'ORG.LAB'),
+        a('جامعة سطيف',              texts.t06, 'ORG.UNIVERSITY'),
+        a('ولاية سطيف',              texts.t06, 'LOCATION.REGION'),
+        a('منذ التسعينيات',          texts.t06, 'TIME.ERA'),
+      ]
+    },
+    {
+      id:1007, title:'حلقة دراسية بمركز تطوير المناهج — الرياض',
+      text: texts.t07,
+      annotations:[
+        a('مركز تطوير المناهج',       texts.t07, 'ORG.LAB'),
+        a('مدينة الرياض',             texts.t07, 'LOCATION.CITY'),
+        a('حلقة دراسية',              texts.t07, 'EVENT.WORKSHOP'),
+        a('القرن الحادي والعشرين',   texts.t07, 'TIME.CENTURY'),
+        a('الكاتب سليم مراد',         texts.t07, 'PERSON.AUTHOR'),
+      ]
+    },
+    {
+      id:1008, title:'منحة الطالب كريم بوزيد — وزارة البحث العلمي',
+      text: texts.t08,
+      annotations:[
+        a('الطالب كريم بوزيد',        texts.t08, 'PERSON.STUDENT'),
+        a('وزارة البحث العلمي',       texts.t08, 'ORG.MINISTRY'),
+        a('دولة فرنسا',               texts.t08, 'LOCATION.COUNTRY'),
+        a('عام 2020',                  texts.t08, 'TIME.YEAR'),
+      ]
+    },
+    {
+      id:1009, title:'المؤتمر الدولي للدراسات اللغوية — تونس 2017',
+      text: texts.t09,
+      annotations:[
+        a('المؤتمر الدولي للدراسات اللغوية', texts.t09, 'EVENT.CONFERENCE'),
+        a('مدينة تونس',                       texts.t09, 'LOCATION.CITY'),
+        a('سنة 2017',                          texts.t09, 'TIME.YEAR'),
+        a('الأستاذ يوسف وغليسي',             texts.t09, 'PERSON.PROFESSOR'),
+        a('جامعة قسنطينة',                   texts.t09, 'ORG.UNIVERSITY'),
+      ]
+    },
+    {
+      id:1010, title:'مجلة الخطاب ومركز الدراسات اللغوية — الجزائر',
+      text: texts.t10,
+      annotations:[
+        a('المؤلف أحمد يوسف',          texts.t10, 'PERSON.AUTHOR'),
+        a('مجلة الخطاب',               texts.t10, 'ORG.JOURNAL'),
+        a('مركز الدراسات اللغوية',     texts.t10, 'ORG.LAB'),
+        a('مدينة الجزائر',             texts.t10, 'LOCATION.CITY'),
+        a('سنة 2022',                  texts.t10, 'TIME.YEAR'),
+      ]
+    },
+    {
+      id:1011, title:'مختبر الدراسات النصية — جامعة تلمسان',
+      text: texts.t11,
+      annotations:[
+        a('الباحثة ليلى بن يونس',      texts.t11, 'PERSON.RESEARCHER'),
+        a('مختبر الدراسات النصية',     texts.t11, 'ORG.LAB'),
+        a('جامعة تلمسان',              texts.t11, 'ORG.UNIVERSITY'),
+        a('منطقة الغرب الجزائري',     texts.t11, 'LOCATION.REGION'),
+        a('عام 2010',                  texts.t11, 'TIME.YEAR'),
+      ]
+    },
+    {
+      id:1012, title:'ندوة اللسانيات التطبيقية — مراكش',
+      text: texts.t12,
+      annotations:[
+        a('الدكتور مصطفى درواز',          texts.t12, 'PERSON.RESEARCHER'),
+        a('ندوة اللسانيات التطبيقية',    texts.t12, 'EVENT.SEMINAR'),
+        a('مدينة مراكش',                  texts.t12, 'LOCATION.CITY'),
+        a('دولة المغرب',                  texts.t12, 'LOCATION.COUNTRY'),
+        a('سنة 2016',                     texts.t12, 'TIME.YEAR'),
+      ]
+    },
+    {
+      id:1013, title:'موقع مكتبة ابن رشد — جامعة الجزائر',
+      text: texts.t13,
+      annotations:[
+        a('الباحثة فاطمة الزهراء شريف', texts.t13, 'PERSON.RESEARCHER'),
+        a('موقع مكتبة ابن رشد الرقمية', texts.t13, 'LOCATION.PLACE'),
+        a('جامعة الجزائر',              texts.t13, 'ORG.UNIVERSITY'),
+        a('القرن الحادي والعشرين',      texts.t13, 'TIME.CENTURY'),
+      ]
+    },
+    {
+      id:1014, title:'أطروحة الطالب عمر بلقاسم — جامعة عنابة',
+      text: texts.t14,
+      annotations:[
+        a('الطالب عمر بلقاسم',          texts.t14, 'PERSON.STUDENT'),
+        a('الأستاذة نور الهدى زيدان',   texts.t14, 'PERSON.PROFESSOR'),
+        a('جامعة عنابة',                texts.t14, 'ORG.UNIVERSITY'),
+        a('ولاية عنابة',                texts.t14, 'LOCATION.REGION'),
+        a('عام 2023',                   texts.t14, 'TIME.YEAR'),
+      ]
+    },
+    {
+      id:1015, title:'مجلة تحليل الخطاب — ملتقى الأسلوبية — فاس',
+      text: texts.t15,
+      annotations:[
+        a('الباحثة رشيدة بن دريد',            texts.t15, 'PERSON.RESEARCHER'),
+        a('مجلة تحليل الخطاب',               texts.t15, 'ORG.JOURNAL'),
+        a('المؤلف حسن فاسي الفهري',          texts.t15, 'PERSON.AUTHOR'),
+        a('الملتقى الدولي للأسلوبية',        texts.t15, 'EVENT.SYMPOSIUM'),
+        a('مدينة فاس',                        texts.t15, 'LOCATION.CITY'),
+      ]
+    },
+    {
+      id:1016, title:'محاضرة الأستاذ عمار بلحسن — جامعة وهران',
+      text: texts.t16,
+      annotations:[
+        a('الأستاذ عمار بلحسن',            texts.t16, 'PERSON.PROFESSOR'),
+        a('جامعة وهران',                    texts.t16, 'ORG.UNIVERSITY'),
+        a('15-03-2019',                     texts.t16, 'TIME.DATE'),
+        a('مؤتمر الدراسات البلاغية',       texts.t16, 'EVENT.CONFERENCE'),
+      ]
+    },
+    {
+      id:1017, title:'الطالب زياد بن عمار ووزارة التربية الوطنية',
+      text: texts.t17,
+      annotations:[
+        a('الطالب زياد بن عمار',          texts.t17, 'PERSON.STUDENT'),
+        a('وزارة التربية الوطنية',        texts.t17, 'ORG.MINISTRY'),
+        a('حقبة التسعينيات',              texts.t17, 'TIME.ERA'),
+        a('دولة الجزائر',                 texts.t17, 'LOCATION.COUNTRY'),
+        a('مجلة الآداب',                  texts.t17, 'ORG.JOURNAL'),
+      ]
+    },
+    {
+      id:1018, title:'مختبر اللسانيات التطبيقية — بسكرة',
+      text: texts.t18,
+      annotations:[
+        a('الباحث عبد العزيز حمودة',      texts.t18, 'PERSON.RESEARCHER'),
+        a('مدينة بسكرة',                  texts.t18, 'LOCATION.CITY'),
+        a('10-11-2021',                   texts.t18, 'TIME.DATE'),
+        a('مختبر اللسانيات التطبيقية',   texts.t18, 'ORG.LAB'),
+        a('حلقة دراسية',                  texts.t18, 'EVENT.WORKSHOP'),
       ]
     },
   ];
+}
+
+function seedSampleData(){
+  corpus = _buildDefaultCorpus();
   saveCorpus();
+}
+
+function loadDefaultCorpus(){
+  if(corpus.length > 0 &&
+     !confirm('سيؤدي هذا إلى استبدال المدونة الحالية بقاعدة البيانات الافتراضية. هل تريد المتابعة؟'))
+    return;
+  corpus = _buildDefaultCorpus();
+  saveCorpus();
+  renderCorpus();
+  notify('✅ تم تحميل قاعدة البيانات الافتراضية (18 نصاً مُوسَماً)');
 }
 
 /* ========================================================
