@@ -41,16 +41,20 @@ html,body{height:100%;background:var(--navy);color:var(--text);font-family:'Sego
 .panel.active{display:block}
 
 /* ========= ENTITY LEGEND ========= */
-.entity-legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.entity-legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-bottom:16px;align-items:flex-start}
+.entity-group{display:inline-flex;flex-direction:column;gap:4px}
 .tag{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid transparent;transition:all .2s;user-select:none}
 .tag:hover{transform:translateY(-1px)}
 .tag-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.tag[data-type="PERSON"]{background:rgba(74,144,217,.12);border-color:var(--person);color:var(--person)}
-.tag[data-type="LOCATION"]{background:rgba(76,175,125,.12);border-color:var(--location);color:var(--location)}
-.tag[data-type="TIME"]{background:rgba(232,160,48,.12);border-color:var(--time);color:var(--time)}
-.tag[data-type="ORG"]{background:rgba(155,89,182,.12);border-color:var(--org);color:var(--org)}
-.tag[data-type="CONCEPT"]{background:rgba(38,166,154,.12);border-color:var(--concept);color:var(--concept)}
-.tag[data-type="EVENT"]{background:rgba(229,115,115,.12);border-color:var(--event);color:var(--event)}
+.parent-tag{font-weight:700!important;font-size:13px!important}
+.sub-arrow{font-size:10px;margin-right:2px;display:inline-block;transition:transform .2s}
+.subtypes-panel{display:flex;flex-wrap:wrap;gap:4px;padding:4px 6px 2px;background:rgba(255,255,255,.04);border-radius:8px}
+.sub-tag{font-size:11px!important;padding:3px 10px!important}
+.tag[data-parent="PERSON"]{background:rgba(74,144,217,.12);border-color:var(--person);color:var(--person)}
+.tag[data-parent="LOCATION"]{background:rgba(76,175,125,.12);border-color:var(--location);color:var(--location)}
+.tag[data-parent="TIME"]{background:rgba(232,160,48,.12);border-color:var(--time);color:var(--time)}
+.tag[data-parent="ORG"]{background:rgba(155,89,182,.12);border-color:var(--org);color:var(--org)}
+.tag[data-parent="EVENT"]{background:rgba(229,115,115,.12);border-color:var(--event);color:var(--event)}
 .tag.selected{box-shadow:0 0 0 3px rgba(201,168,76,.3);border-color:var(--gold)!important;color:var(--gold)!important;background:rgba(201,168,76,.1)!important}
 
 /* ========= TEXT AREAS ========= */
@@ -64,12 +68,11 @@ input.text-input{min-height:44px;resize:none}
 .ent-span{border-radius:4px;padding:1px 4px;cursor:pointer;position:relative;transition:opacity .15s;display:inline}
 .ent-span sup{font-size:9px;opacity:.75;margin-right:1px}
 .ent-span:hover{opacity:.7}
-.ent-span[data-type="PERSON"]{background:rgba(74,144,217,.22);border-bottom:2px solid var(--person)}
-.ent-span[data-type="LOCATION"]{background:rgba(76,175,125,.22);border-bottom:2px solid var(--location)}
-.ent-span[data-type="TIME"]{background:rgba(232,160,48,.22);border-bottom:2px solid var(--time)}
-.ent-span[data-type="ORG"]{background:rgba(155,89,182,.22);border-bottom:2px solid var(--org)}
-.ent-span[data-type="CONCEPT"]{background:rgba(38,166,154,.22);border-bottom:2px solid var(--concept)}
-.ent-span[data-type="EVENT"]{background:rgba(229,115,115,.22);border-bottom:2px solid var(--event)}
+.ent-span[data-parent="PERSON"]{background:rgba(74,144,217,.22);border-bottom:2px solid var(--person)}
+.ent-span[data-parent="LOCATION"]{background:rgba(76,175,125,.22);border-bottom:2px solid var(--location)}
+.ent-span[data-parent="TIME"]{background:rgba(232,160,48,.22);border-bottom:2px solid var(--time)}
+.ent-span[data-parent="ORG"]{background:rgba(155,89,182,.22);border-bottom:2px solid var(--org)}
+.ent-span[data-parent="EVENT"]{background:rgba(229,115,115,.22);border-bottom:2px solid var(--event)}
 
 /* ========= BUTTONS ========= */
 .btn{padding:9px 18px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-family:inherit;transition:all .2s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
@@ -198,8 +201,8 @@ input[type=range]{accent-color:var(--gold);flex:1;height:4px}
       <div class="stat-l">كيان مُعلَّم</div>
     </div>
     <div class="stat">
-      <div class="stat-n" id="hdr-types">6</div>
-      <div class="stat-l">نوع كيان</div>
+      <div class="stat-n" id="hdr-types">5</div>
+      <div class="stat-l">نوع رئيسي</div>
     </div>
   </div>
 </div>
@@ -314,26 +317,7 @@ input[type=range]{accent-color:var(--gold);flex:1;height:4px}
   <div id="panel-train" class="panel">
 
     <!-- Legend -->
-    <div class="entity-legend" id="main-legend">
-      <span class="tag" data-type="PERSON" onclick="selectEntityType('PERSON')">
-        <span class="tag-dot" style="background:var(--person)"></span> شخص
-      </span>
-      <span class="tag" data-type="LOCATION" onclick="selectEntityType('LOCATION')">
-        <span class="tag-dot" style="background:var(--location)"></span> مكان
-      </span>
-      <span class="tag" data-type="TIME" onclick="selectEntityType('TIME')">
-        <span class="tag-dot" style="background:var(--time)"></span> زمن
-      </span>
-      <span class="tag" data-type="ORG" onclick="selectEntityType('ORG')">
-        <span class="tag-dot" style="background:var(--org)"></span> مؤسسة
-      </span>
-      <span class="tag" data-type="CONCEPT" onclick="selectEntityType('CONCEPT')">
-        <span class="tag-dot" style="background:var(--concept)"></span> مفهوم أكاديمي
-      </span>
-      <span class="tag" data-type="EVENT" onclick="selectEntityType('EVENT')">
-        <span class="tag-dot" style="background:var(--event)"></span> حدث
-      </span>
-    </div>
+    <div class="entity-legend" id="main-legend"></div>
 
     <!-- Input card -->
     <div class="card">
@@ -357,14 +341,7 @@ input[type=range]{accent-color:var(--gold);flex:1;height:4px}
       </div>
       <div style="margin-bottom:12px">
         <div class="section-label" style="margin-bottom:8px">اختر نوع الكيان الذي ستعلّقه:</div>
-        <div class="entity-legend" id="annotate-legend">
-          <span class="tag" data-type="PERSON" onclick="selectEntityType('PERSON')">شخص</span>
-          <span class="tag" data-type="LOCATION" onclick="selectEntityType('LOCATION')">مكان</span>
-          <span class="tag" data-type="TIME" onclick="selectEntityType('TIME')">زمن</span>
-          <span class="tag" data-type="ORG" onclick="selectEntityType('ORG')">مؤسسة</span>
-          <span class="tag" data-type="CONCEPT" onclick="selectEntityType('CONCEPT')">مفهوم</span>
-          <span class="tag" data-type="EVENT" onclick="selectEntityType('EVENT')">حدث</span>
-        </div>
+        <div class="entity-legend" id="annotate-legend"></div>
       </div>
       <div class="section-label">حدّد الكيانات بالسحب ثم ستُعلَّق بالنوع المختار — انقر على كيان مُعلَّق لحذفه</div>
       <div class="text-display" id="annotate-display" onmouseup="handleSelection()"></div>
@@ -499,17 +476,44 @@ input[type=range]{accent-color:var(--gold);flex:1;height:4px}
    DATA & ENTITY TYPES
    ======================================================== */
 const ENTITY_TYPES = {
-  PERSON:  { label:'شخص',           hex:'#4a90d9' },
-  LOCATION:{ label:'مكان',           hex:'#4caf7d' },
-  TIME:    { label:'زمن',            hex:'#e8a030' },
-  ORG:     { label:'مؤسسة',          hex:'#9b59b6' },
-  CONCEPT: { label:'مفهوم أكاديمي',  hex:'#26a69a' },
-  EVENT:   { label:'حدث',            hex:'#e57373' },
+  // === شخص ===
+  'PERSON.RESEARCHER': { label:'باحث',          hex:'#4a90d9', parent:'PERSON',   parentLabel:'شخص' },
+  'PERSON.PROFESSOR':  { label:'أستاذ',          hex:'#5ba3e8', parent:'PERSON',   parentLabel:'شخص' },
+  'PERSON.AUTHOR':     { label:'مؤلف',           hex:'#2d72c0', parent:'PERSON',   parentLabel:'شخص' },
+  'PERSON.STUDENT':    { label:'طالب',           hex:'#85c1f5', parent:'PERSON',   parentLabel:'شخص' },
+  // === مكان ===
+  'LOCATION.CITY':     { label:'مدينة',          hex:'#4caf7d', parent:'LOCATION', parentLabel:'مكان' },
+  'LOCATION.COUNTRY':  { label:'دولة',           hex:'#66bb6a', parent:'LOCATION', parentLabel:'مكان' },
+  'LOCATION.REGION':   { label:'منطقة/ولاية',  hex:'#2e7d32', parent:'LOCATION', parentLabel:'مكان' },
+  'LOCATION.PLACE':    { label:'موقع',           hex:'#a5d6a7', parent:'LOCATION', parentLabel:'مكان' },
+  // === زمن ===
+  'TIME.YEAR':         { label:'سنة/عام',       hex:'#e8a030', parent:'TIME',     parentLabel:'زمن' },
+  'TIME.ERA':          { label:'حقبة',           hex:'#ffb74d', parent:'TIME',     parentLabel:'زمن' },
+  'TIME.CENTURY':      { label:'قرن',            hex:'#f57c00', parent:'TIME',     parentLabel:'زمن' },
+  'TIME.DATE':         { label:'تاريخ',          hex:'#ffe082', parent:'TIME',     parentLabel:'زمن' },
+  // === مؤسسة ===
+  'ORG.UNIVERSITY':    { label:'جامعة',          hex:'#9b59b6', parent:'ORG',      parentLabel:'مؤسسة' },
+  'ORG.LAB':           { label:'مختبر/مركز',    hex:'#ba68c8', parent:'ORG',      parentLabel:'مؤسسة' },
+  'ORG.MINISTRY':      { label:'وزارة/هيئة',    hex:'#6a1b9a', parent:'ORG',      parentLabel:'مؤسسة' },
+  'ORG.JOURNAL':       { label:'مجلة/دورية',   hex:'#ce93d8', parent:'ORG',      parentLabel:'مؤسسة' },
+  // === حدث ===
+  'EVENT.CONFERENCE':  { label:'مؤتمر',          hex:'#e57373', parent:'EVENT',    parentLabel:'حدث' },
+  'EVENT.SEMINAR':     { label:'ندوة',           hex:'#ef9a9a', parent:'EVENT',    parentLabel:'حدث' },
+  'EVENT.SYMPOSIUM':   { label:'ملتقى',          hex:'#c62828', parent:'EVENT',    parentLabel:'حدث' },
+  'EVENT.WORKSHOP':    { label:'حلقة دراسية',  hex:'#ff8a80', parent:'EVENT',    parentLabel:'حدث' },
 };
+
+const ENTITY_HIERARCHY = [
+  { key:'PERSON',   label:'شخص',    hex:'#4a90d9', children:['PERSON.RESEARCHER','PERSON.PROFESSOR','PERSON.AUTHOR','PERSON.STUDENT'] },
+  { key:'LOCATION', label:'مكان',   hex:'#4caf7d', children:['LOCATION.CITY','LOCATION.COUNTRY','LOCATION.REGION','LOCATION.PLACE'] },
+  { key:'TIME',     label:'زمن',    hex:'#e8a030', children:['TIME.YEAR','TIME.ERA','TIME.CENTURY','TIME.DATE'] },
+  { key:'ORG',      label:'مؤسسة', hex:'#9b59b6', children:['ORG.UNIVERSITY','ORG.LAB','ORG.MINISTRY','ORG.JOURNAL'] },
+  { key:'EVENT',    label:'حدث',    hex:'#e57373', children:['EVENT.CONFERENCE','EVENT.SEMINAR','EVENT.SYMPOSIUM','EVENT.WORKSHOP'] },
+];
 
 let corpus = [];
 let currentDoc = { title:'', text:'', annotations:[] };
-let selectedEntityType = 'PERSON';
+let selectedEntityType = 'PERSON.RESEARCHER';
 let lastExtracted = [];
 
 /* ========================================================
@@ -536,34 +540,36 @@ function updateHeaderStats(){
 function seedSampleData(){
   corpus = [
     {
-      id:1001, title:'نموذج تدريبي 1 — إصلاحات جامعة الجزائر',
-      text:'أشار الدكتور محمد العربي في كتابه الصادر عام 1995 إلى أن جامعة الجزائر شهدت تحولات جذرية خلال القرن العشرين في ميدان التعليم العالي.',
+      id:1001, title:'نموذج 1 — مؤتمر اللسانيات في تيارت',
+      text:'أشار الدكتور خليل حليمي في مؤتمر قسنطينة سنة 2019 إلى أن جامعة تيارت في ولاية تيارت تضطلع بتطوير البحث العلمي.',
       annotations:[
-        {text:'الدكتور محمد العربي', type:'PERSON',   start:5,  end:24},
-        {text:'عام 1995',            type:'TIME',     start:42, end:50},
-        {text:'جامعة الجزائر',      type:'ORG',      start:57, end:71},
-        {text:'القرن العشرين',      type:'TIME',     start:93, end:107},
+        {text:'الدكتور خليل حليمي', type:'PERSON.RESEARCHER', start:5,  end:23},
+        {text:'مؤتمر قسنطينة',      type:'EVENT.CONFERENCE',  start:27, end:41},
+        {text:'سنة 2019',            type:'TIME.YEAR',         start:42, end:50},
+        {text:'جامعة تيارت',        type:'ORG.UNIVERSITY',    start:58, end:69},
+        {text:'ولاية تيارت',        type:'LOCATION.REGION',   start:73, end:84},
       ]
     },
     {
-      id:1002, title:'نموذج تدريبي 2 — مؤتمر الرباط',
-      text:'انعقد المؤتمر الدولي للغويات في مدينة الرباط سنة 2018 برئاسة البروفيسور أحمد سليمان وبمشاركة باحثين من دول المغرب العربي.',
+      id:1002, title:'نموذج 2 — الملتقى الوطني للغويات',
+      text:'انعقد الملتقى الوطني للغويات في مدينة وهران سنة 2021 برئاسة الأستاذ نعمان بوقرة من وزارة التعليم العالي.',
       annotations:[
-        {text:'المؤتمر الدولي للغويات', type:'EVENT',    start:7,  end:29},
-        {text:'مدينة الرباط',          type:'LOCATION', start:33, end:46},
-        {text:'سنة 2018',              type:'TIME',     start:47, end:55},
-        {text:'البروفيسور أحمد سليمان',type:'PERSON',   start:63, end:86},
-        {text:'المغرب العربي',         type:'LOCATION', start:107,end:120},
+        {text:'الملتقى الوطني للغويات', type:'EVENT.SYMPOSIUM',  start:6,  end:28},
+        {text:'مدينة وهران',            type:'LOCATION.CITY',    start:32, end:43},
+        {text:'سنة 2021',               type:'TIME.YEAR',         start:44, end:52},
+        {text:'الأستاذ نعمان بوقرة',   type:'PERSON.PROFESSOR', start:61, end:80},
+        {text:'وزارة التعليم العالي',  type:'ORG.MINISTRY',     start:84, end:104},
       ]
     },
     {
-      id:1003, title:'نموذج تدريبي 3 — وزارة التعليم العالي',
-      text:'تبنّت وزارة التعليم العالي في الجزائر مفهوم الخطاب الأكاديمي منذ التسعينيات كإطار تحليلي لتطوير البحث العلمي في الجامعات الوطنية.',
+      id:1003, title:'نموذج 3 — مجلة اللسان العربي وجامعة الجزائر',
+      text:'نشرت الباحثة سامية بن عمر بحثها في مجلة اللسان العربي التابعة لجامعة الجزائر خلال القرن الحادي والعشرين بمدينة الرباط.',
       annotations:[
-        {text:'وزارة التعليم العالي', type:'ORG',     start:6,  end:26},
-        {text:'الجزائر',              type:'LOCATION',start:30, end:38},
-        {text:'الخطاب الأكاديمي',    type:'CONCEPT', start:47, end:64},
-        {text:'منذ التسعينيات',      type:'TIME',    start:65, end:79},
+        {text:'الباحثة سامية بن عمر',   type:'PERSON.RESEARCHER', start:6,  end:26},
+        {text:'مجلة اللسان العربي',     type:'ORG.JOURNAL',       start:35, end:53},
+        {text:'جامعة الجزائر',          type:'ORG.UNIVERSITY',    start:63, end:76},
+        {text:'القرن الحادي والعشرين', type:'TIME.CENTURY',      start:83, end:104},
+        {text:'مدينة الرباط',           type:'LOCATION.CITY',     start:106,end:118},
       ]
     },
   ];
@@ -597,15 +603,63 @@ function escHtml(s){
 }
 
 /* ========================================================
-   ENTITY TYPE SELECTION
+   ENTITY TYPE SELECTION & LEGEND BUILD
    ======================================================== */
+function buildAllLegends(){
+  buildLegend('main-legend');
+  buildLegend('annotate-legend');
+}
+
+function buildLegend(id){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.innerHTML = ENTITY_HIERARCHY.map(g=>`
+    <div class="entity-group">
+      <span class="tag parent-tag" data-parent="${g.key}"
+            onclick="toggleSubtypes(this)">
+        <span class="tag-dot" style="background:${g.hex}"></span>
+        ${g.label} <span class="sub-arrow">▾</span>
+      </span>
+      <div class="subtypes-panel" style="display:none">
+        ${g.children.map(ck=>{
+          const et=ENTITY_TYPES[ck];
+          return `<span class="tag sub-tag" data-parent="${g.key}" data-type="${ck}"
+                        onclick="selectEntityType('${ck}')">${et.label}</span>`;
+        }).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function toggleSubtypes(parentEl){
+  const group = parentEl.closest('.entity-group');
+  const panel = group.querySelector('.subtypes-panel');
+  const arrow = group.querySelector('.sub-arrow');
+  const isOpen = panel.style.display !== 'none';
+  panel.style.display = isOpen ? 'none' : 'flex';
+  arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
+}
+
 function selectEntityType(type){
   selectedEntityType = type;
-  const et = ENTITY_TYPES[type];
-  document.getElementById('sel-type-badge').textContent = 'النوع المحدد: ' + et.label;
-  document.querySelectorAll('#annotate-legend .tag, #main-legend .tag').forEach(el=>{
+  const et = ENTITY_TYPES[type] || {label:type, parentLabel:''};
+  const display = et.parentLabel ? et.parentLabel+' ← '+et.label : et.label;
+  document.getElementById('sel-type-badge').textContent = 'النوع المحدد: '+display;
+  document.querySelectorAll('.sub-tag').forEach(el=>{
     el.classList.toggle('selected', el.dataset.type===type);
   });
+  if(et.parent){
+    document.querySelectorAll('.entity-group').forEach(group=>{
+      const pt = group.querySelector('[data-parent="'+et.parent+'"].parent-tag');
+      if(pt){
+        const panel = group.querySelector('.subtypes-panel');
+        const arrow = group.querySelector('.sub-arrow');
+        if(panel && panel.style.display==='none'){
+          panel.style.display='flex';
+          if(arrow) arrow.style.transform='rotate(180deg)';
+        }
+      }
+    });
+  }
 }
 
 /* ========================================================
@@ -619,14 +673,14 @@ function loadTrainText(){
   renderAnnotateDisplay();
   document.getElementById('annotation-card').style.display = 'block';
   document.getElementById('train-entities-card').style.display = 'none';
-  selectEntityType('PERSON');
+  selectEntityType('PERSON.RESEARCHER');
   document.getElementById('annotation-card').scrollIntoView({behavior:'smooth'});
 }
 
 function loadSampleTrain(){
-  document.getElementById('doc-title').value = 'نموذج تدريبي جديد';
+  document.getElementById('doc-title').value = 'نموذج تدريبي جديد — ندوة اللسانيات';
   document.getElementById('train-input').value =
-    'أوضح الأستاذ عبد القادر فارسي في ندوة قسنطينة المنعقدة سنة 2020 أن معهد اللغة العربية بالجزائر العاصمة يضطلع بمهمة تطوير مفهوم التحليل النصي منذ مطلع الألفية الثالثة.';
+    'أشار الأستاذ خالد بن علي في ندوة علمية بمدينة قسنطينة سنة 2022 إلى أن مختبر اللسانيات بجامعة منتوري يعمل على تطوير البحث في ولاية قسنطينة منذ مطلع القرن الحادي والعشرين.';
 }
 
 function clearTrainInput(){
@@ -652,9 +706,10 @@ function buildAnnotatedHTML(text, anns){
   let result='', pos=0;
   for(const a of sorted){
     if(a.start > pos) result += escHtml(text.slice(pos, a.start));
-    const et = ENTITY_TYPES[a.type] || { label:a.type, hex:'#888' };
-    result += `<span class="ent-span" data-type="${a.type}"
-      title="انقر لحذف: ${et.label}"
+    const et = ENTITY_TYPES[a.type] || { label:a.type, hex:'#888', parent:a.type, parentLabel:'' };
+    const pk = et.parent || a.type;
+    result += `<span class="ent-span" data-parent="${pk}" data-type="${a.type}"
+      title="انقر لحذف: ${et.parentLabel||pk} — ${et.label}"
       onclick="removeAnnotation(${a.start},${a.end})"
     >${escHtml(text.slice(a.start, a.end))}<sup>${et.label}</sup></span>`;
     pos = a.end;
@@ -723,11 +778,13 @@ function renderTrainEntitiesList(){
   if(!currentDoc.annotations.length){ card.style.display='none'; return; }
   card.style.display = 'block';
   list.innerHTML = currentDoc.annotations.map((a,i)=>{
-    const et = ENTITY_TYPES[a.type] || { label:a.type, hex:'#888' };
+    const et = ENTITY_TYPES[a.type] || { label:a.type, hex:'#888', parent:a.type, parentLabel:'' };
+    const pk = et.parent || a.type;
     return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)">
       <span style="color:var(--text3);font-size:11px;min-width:22px">${i+1}</span>
-      <span class="ent-span" data-type="${a.type}" style="cursor:default">${escHtml(a.text)}</span>
-      <span style="font-size:12px;color:${et.hex};margin-right:4px">${et.label}</span>
+      <span class="ent-span" data-parent="${pk}" data-type="${a.type}" style="cursor:default">${escHtml(a.text)}</span>
+      <span style="font-size:11px;color:var(--text3)">${et.parentLabel||pk}</span>
+      <span style="font-size:12px;color:${et.hex};margin-right:4px">← ${et.label}</span>
       <button class="btn btn-danger btn-sm" style="margin-right:auto"
         onclick="removeAnnotation(${a.start},${a.end})">✕ حذف</button>
     </div>`;
@@ -751,26 +808,65 @@ function saveAnnotatedDoc(){
    NER ENGINE — REGEX PATTERNS
    ======================================================== */
 const NER_PATTERNS = {
-  TIME:[
+  // شخص — sub-types
+  'PERSON.RESEARCHER':[
+    /\b(الباحث|الباحثة|الدكتور|الدكتورة)\s+[\u0600-\u06FF]{3,}\s+[\u0600-\u06FF]{3,}/g,
+    /\b(الباحث|الباحثة|الدكتور|الدكتورة)\s+[\u0600-\u06FF]{4,}/g,
+  ],
+  'PERSON.PROFESSOR':[
+    /\b(الأستاذ|البروفيسور|أ\.د)\s+[\u0600-\u06FF]{3,}\s+[\u0600-\u06FF]{3,}/g,
+    /\b(الأستاذ|البروفيسور)\s+[\u0600-\u06FF]{4,}/g,
+  ],
+  'PERSON.AUTHOR':[
+    /\b(المؤلف|المؤلفة|الكاتب|الكاتبة)\s+[\u0600-\u06FF]{3,}\s+[\u0600-\u06FF]{3,}/g,
+  ],
+  // مكان — sub-types
+  'LOCATION.CITY':[
+    /\b(مدينة)\s+[\u0600-\u06FF]+/g,
+  ],
+  'LOCATION.COUNTRY':[
+    /\b(دولة|بلد)\s+[\u0600-\u06FF]+/g,
+  ],
+  'LOCATION.REGION':[
+    /\b(منطقة|ولاية|إقليم|محافظة)\s+[\u0600-\u06FF]+/g,
+  ],
+  // زمن — sub-types
+  'TIME.YEAR':[
     /\b(سنة|عام)\s+\d{4}/g,
-    /\b(في\s+القرن\s+\w+)/g,
-    /\b(منذ\s+التسعينيات|منذ\s+الثمانينيات|منذ\s+السبعينيات|منذ\s+الستينيات)/g,
-    /\b(مطلع\s+الألفية\s+\w+)/g,
-    /\b(خلال\s+القرن\s+\w+)/g,
     /\b\d{4}\s*م\b/g,
   ],
-  PERSON:[
-    /\b(الدكتور|الأستاذ|البروفيسور|الشيخ|الإمام|السيد|السيدة)\s+[\u0600-\u06FF]{3,}\s+[\u0600-\u06FF]{3,}/g,
-    /\b(الدكتور|الأستاذ|البروفيسور)\s+[\u0600-\u06FF]{4,}/g,
+  'TIME.ERA':[
+    /\b(منذ\s+التسعينيات|منذ\s+الثمانينيات|منذ\s+السبعينيات|مطلع\s+الألفية\s+[\u0600-\u06FF]+)/g,
   ],
-  LOCATION:[
-    /\b(مدينة|ولاية|دولة|منطقة|إقليم|محافظة)\s+[\u0600-\u06FF]+/g,
+  'TIME.CENTURY':[
+    /\b(في\s+القرن\s+[\u0600-\u06FF]+|خلال\s+القرن\s+[\u0600-\u06FF]+)/g,
+    /\bالقرن\s+[\u0600-\u06FF]+\s+و[\u0600-\u06FF]+/g,
   ],
-  ORG:[
-    /\b(جامعة|معهد|مركز|وزارة|هيئة|منظمة|كلية|مختبر)\s+[\u0600-\u06FF\s]{3,25}/g,
+  // مؤسسة — sub-types
+  'ORG.UNIVERSITY':[
+    /\b(جامعة)\s+[\u0600-\u06FF\s]{3,20}/g,
   ],
-  EVENT:[
-    /\b(المؤتمر|الملتقى|الندوة|المهرجان|اليوم الوطني)\s+[\u0600-\u06FF\s]{3,22}/g,
+  'ORG.LAB':[
+    /\b(مختبر|مركز)\s+[\u0600-\u06FF\s]{3,20}/g,
+  ],
+  'ORG.MINISTRY':[
+    /\b(وزارة|هيئة)\s+[\u0600-\u06FF\s]{3,20}/g,
+  ],
+  'ORG.JOURNAL':[
+    /\b(مجلة|دورية)\s+[\u0600-\u06FF\s]{3,20}/g,
+  ],
+  // حدث — sub-types
+  'EVENT.CONFERENCE':[
+    /\b(المؤتمر|مؤتمر)\s+[\u0600-\u06FF\s]{3,22}/g,
+  ],
+  'EVENT.SEMINAR':[
+    /\b(الندوة|ندوة)\s+[\u0600-\u06FF\s]{3,22}/g,
+  ],
+  'EVENT.SYMPOSIUM':[
+    /\b(الملتقى|ملتقى)\s+[\u0600-\u06FF\s]{3,22}/g,
+  ],
+  'EVENT.WORKSHOP':[
+    /\b(ورشة|حلقة)\s+[\u0600-\u06FF\s]{3,22}/g,
   ],
 };
 
@@ -830,13 +926,15 @@ function runExtraction(){
     buildAnnotatedHTML(text, lastExtracted);
   // Stats cards
   const counts = {};
-  for(const e of lastExtracted) counts[e.type] = (counts[e.type]||0)+1;
+  for(const e of lastExtracted){
+    const pk=(ENTITY_TYPES[e.type]||{parent:e.type}).parent||e.type;
+    counts[pk]=(counts[pk]||0)+1;
+  }
   document.getElementById('extract-stats').innerHTML =
-    Object.entries(counts).map(([type,n])=>{
-      const et = ENTITY_TYPES[type] || {label:type, hex:'#888'};
+    ENTITY_HIERARCHY.filter(g=>counts[g.key]).map(g=>{
       return `<div class="metric-card">
-        <div class="metric-val" style="color:${et.hex}">${n}</div>
-        <div class="metric-lbl">${et.label}</div>
+        <div class="metric-val" style="color:${g.hex}">${counts[g.key]}</div>
+        <div class="metric-lbl">${g.label}</div>
       </div>`;
     }).join('') +
     `<div class="metric-card">
@@ -856,8 +954,8 @@ function runExtraction(){
       const meth = e.method==='gazetteer' ? '📖 قاموس المدونة' : '🔤 أنماط لغوية';
       return `<tr>
         <td style="color:var(--text3)">${i+1}</td>
-        <td><span class="ent-span" data-type="${e.type}" style="cursor:default">${escHtml(e.text)}</span></td>
-        <td><span style="color:${et.hex};font-size:12px;font-weight:600">${et.label}</span></td>
+        <td><span class="ent-span" data-parent="${(ENTITY_TYPES[e.type]||{parent:e.type}).parent||e.type}" data-type="${e.type}" style="cursor:default">${escHtml(e.text)}</span></td>
+        <td><span style="font-size:11px;color:var(--text3)">${(ENTITY_TYPES[e.type]||{parentLabel:''}).parentLabel||''}</span> <span style="color:${et.hex};font-size:12px;font-weight:600">← ${et.label}</span></td>
         <td style="color:var(--text2);font-size:12px">${meth}</td>
         <td>
           <div class="conf-bar-wrap">
@@ -877,7 +975,7 @@ function runExtraction(){
 
 function loadSampleExtract(){
   document.getElementById('extract-input').value =
-    'تُعدّ الجزائر من أبرز دول المغرب العربي التي اهتمت بتطوير مناهج التعليم العالي، إذ أصدرت وزارة التعليم العالي سنة 2010 قرارًا بإصلاح البرامج الجامعية. وقد أشار الأستاذ كريم بن علي في مؤتمر وهران المنعقد عام 2015 إلى أن مفهوم الكفاءة اللغوية بات ركيزة أساسية في الخطاب الأكاديمي المعاصر، وأكد أن جامعة وهران شهدت تطورًا ملحوظًا منذ التسعينيات.';
+    'أقامت وزارة التعليم العالي مؤتمرًا دوليًا بمدينة الجزائر العاصمة عام 2023 برئاسة البروفيسور أحمد بن سعد، وشارك فيه باحثون من دولة الجزائر ودول المغرب العربي. كما أشارت الباحثة سامية بن عمر إلى أن ملتقى تلمسان عام 2020 شهد نقاشات واسعة حول مختبر اللسانيات بجامعة تيارت في منطقة الغرب الجزائري، فيما نشرت مجلة اللسان العربي أعمال الندوة خلال القرن الحادي والعشرين.';
 }
 
 function clearExtract(){
@@ -975,23 +1073,39 @@ function runEvaluation(){
   `;
 
   let classHtml = '';
-  for(const [t, et] of Object.entries(ENTITY_TYPES)){
-    if(tp[t]+fp[t]+fn[t]===0) continue;
-    const p = tp[t]/(tp[t]+fp[t]||1);
-    const r = tp[t]/(tp[t]+fn[t]||1);
-    const f = 2*p*r/(p+r||1);
+  for(const g of ENTITY_HIERARCHY){
+    let gtp=0,gfp=0,gfn=0;
+    for(const ck of g.children){ gtp+=(tp[ck]||0); gfp+=(fp[ck]||0); gfn+=(fn[ck]||0); }
+    if(gtp+gfp+gfn===0) continue;
+    const gp=gtp/(gtp+gfp||1), gr=gtp/(gtp+gfn||1), gf=2*gp*gr/(gp+gr||1);
     classHtml += `<div class="prog-wrap">
       <div class="prog-label">
-        <span style="color:${et.hex};font-weight:600">${et.label}</span>
+        <span style="color:${g.hex};font-weight:700">${g.label}</span>
         <span style="color:var(--text2)">
-          P: ${Math.round(p*100)}% &nbsp; R: ${Math.round(r*100)}% &nbsp;
-          <strong style="color:${et.hex}">F1: ${Math.round(f*100)}%</strong>
+          P: ${Math.round(gp*100)}% &nbsp; R: ${Math.round(gr*100)}% &nbsp;
+          <strong style="color:${g.hex}">F1: ${Math.round(gf*100)}%</strong>
         </span>
       </div>
       <div class="prog-bar">
-        <div class="prog-fill" style="width:${Math.round(f*100)}%;background:${et.hex}"></div>
+        <div class="prog-fill" style="width:${Math.round(gf*100)}%;background:${g.hex}"></div>
       </div>
     </div>`;
+    for(const ck of g.children){
+      if((tp[ck]||0)+(fp[ck]||0)+(fn[ck]||0)===0) continue;
+      const et=ENTITY_TYPES[ck];
+      const sp=(tp[ck]||0)/((tp[ck]||0)+(fp[ck]||0)||1);
+      const sr=(tp[ck]||0)/((tp[ck]||0)+(fn[ck]||0)||1);
+      const sf=2*sp*sr/(sp+sr||1);
+      classHtml += `<div class="prog-wrap" style="padding-right:18px;border-right:2px solid ${g.hex}44;margin-right:8px;margin-top:-4px">
+        <div class="prog-label">
+          <span style="color:${et.hex};font-size:11px">&nbsp;↳ ${et.label}</span>
+          <span style="color:var(--text3);font-size:11px">F1: ${Math.round(sf*100)}%</span>
+        </div>
+        <div class="prog-bar" style="height:5px">
+          <div class="prog-fill" style="width:${Math.round(sf*100)}%;background:${et.hex}"></div>
+        </div>
+      </div>`;
+    }
   }
   document.getElementById('per-class-metrics').innerHTML =
     classHtml || '<div style="color:var(--text3);font-size:12px">لا توجد بيانات كافية لحساب المقاييس</div>';
@@ -1071,7 +1185,7 @@ function loadDocForEdit(id){
   switchTab('train');
   renderAnnotateDisplay();
   document.getElementById('annotation-card').style.display = 'block';
-  selectEntityType('PERSON');
+  selectEntityType('PERSON.RESEARCHER');
   notify(`📄 تم تحميل "${doc.title}" للتعديل`);
 }
 
@@ -1106,6 +1220,8 @@ function handleImport(e){
    INIT
    ======================================================== */
 loadCorpus();
+buildAllLegends();
+selectEntityType('PERSON.RESEARCHER');
 </script>
 </body>
 </html>
