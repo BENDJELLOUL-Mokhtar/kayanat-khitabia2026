@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>منصة تحليل الكيانات الخطابية</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0f1724;--navy2:#1a2535;--navy3:#243044;
+  --gold:#c9a84c;--gold2:#e8c46a;--gold3:#f5d88a;
+  --text:#e8eaf0;--text2:#a0a8b8;--text3:#6b7585;
+  --person:#4a90d9;--location:#4caf7d;--time:#e8a030;
+  --org:#9b59b6;--concept:#26a69a;--event:#e57373;
+  --border:rgba(201,168,76,0.2);--border2:rgba(201,168,76,0.4);
+}
+html,body{height:100%;background:var(--navy);color:var(--text);font-family:'Segoe UI',Tahoma,Arial,sans-serif;direction:rtl;font-size:14px;line-height:1.6}
+#app{min-height:100vh;display:flex;flex-direction:column}
+
+/* ========= HEADER ========= */
+.header{background:var(--navy2);border-bottom:2px solid var(--border2);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-icon{width:42px;height:42px;background:linear-gradient(135deg,var(--gold),var(--gold2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:20px;color:var(--navy)}
+.logo-text{font-size:17px;font-weight:700;color:var(--gold);letter-spacing:.3px}
+.logo-sub{font-size:11px;color:var(--text3)}
+.stats-bar{display:flex;gap:20px}
+.stat{text-align:center;padding:0 12px;border-right:1px solid var(--border)}
+.stat:first-child{border:none}
+.stat-n{font-size:20px;font-weight:700;color:var(--gold)}
+.stat-l{font-size:10px;color:var(--text3);margin-top:1px}
+
+/* ========= TABS ========= */
+.tabs{display:flex;background:var(--navy2);border-bottom:1px solid var(--border);padding:0 24px;gap:4px}
+.tab{padding:13px 22px;cursor:pointer;border-bottom:3px solid transparent;color:var(--text2);font-size:13px;transition:all .2s;user-select:none;display:flex;align-items:center;gap:7px;white-space:nowrap}
+.tab:hover{color:var(--text);background:rgba(255,255,255,.03)}
+.tab.active{color:var(--gold);border-bottom-color:var(--gold);background:rgba(201,168,76,.05)}
+
+/* ========= CONTENT ========= */
+.content{flex:1;padding:24px;overflow-y:auto;max-width:1100px;margin:0 auto;width:100%}
+.panel{display:none}
+.panel.active{display:block}
+
+/* ========= ENTITY LEGEND ========= */
+.entity-legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-bottom:16px;align-items:flex-start}
+.entity-group{display:inline-flex;flex-direction:column;gap:4px}
+.tag{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid transparent;transition:all .2s;user-select:none}
+.tag:hover{transform:translateY(-1px)}
+.tag-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.parent-tag{font-weight:700!important;font-size:13px!important}
+.sub-arrow{font-size:10px;margin-right:2px;display:inline-block;transition:transform .2s}
+.subtypes-panel{display:flex;flex-wrap:wrap;gap:4px;padding:4px 6px 2px;background:rgba(255,255,255,.04);border-radius:8px}
+.sub-tag{font-size:11px!important;padding:3px 10px!important}
+.tag[data-parent="PERSON"]{background:rgba(74,144,217,.12);border-color:var(--person);color:var(--person)}
+.tag[data-parent="LOCATION"]{background:rgba(76,175,125,.12);border-color:var(--location);color:var(--location)}
+.tag[data-parent="TIME"]{background:rgba(232,160,48,.12);border-color:var(--time);color:var(--time)}
+.tag[data-parent="ORG"]{background:rgba(155,89,182,.12);border-color:var(--org);color:var(--org)}
+.tag[data-parent="EVENT"]{background:rgba(229,115,115,.12);border-color:var(--event);color:var(--event)}
+.tag.selected{box-shadow:0 0 0 3px rgba(201,168,76,.3);border-color:var(--gold)!important;color:var(--gold)!important;background:rgba(201,168,76,.1)!important}
+
+/* ========= TEXT AREAS ========= */
+.text-display{background:var(--navy3);border:1px solid var(--border);border-radius:10px;padding:18px;min-height:130px;line-height:2.2;font-size:14px;direction:rtl;white-space:pre-wrap;word-break:break-word;user-select:text;cursor:text;transition:border .2s}
+.text-display:hover{border-color:var(--border2)}
+.text-input{width:100%;background:var(--navy3);border:1px solid var(--border);border-radius:10px;padding:14px 16px;color:var(--text);font-size:14px;direction:rtl;resize:vertical;outline:none;font-family:inherit;transition:border .2s}
+.text-input:focus{border-color:var(--gold)}
+input.text-input{min-height:44px;resize:none}
+
+/* ========= ENTITY SPANS ========= */
+.ent-span{border-radius:4px;padding:1px 4px;cursor:pointer;position:relative;transition:opacity .15s;display:inline}
+.ent-span sup{font-size:9px;opacity:.75;margin-right:1px}
+.ent-span:hover{opacity:.7}
+.ent-span[data-parent="PERSON"]{background:rgba(74,144,217,.22);border-bottom:2px solid var(--person)}
+.ent-span[data-parent="LOCATION"]{background:rgba(76,175,125,.22);border-bottom:2px solid var(--location)}
+.ent-span[data-parent="TIME"]{background:rgba(232,160,48,.22);border-bottom:2px solid var(--time)}
+.ent-span[data-parent="ORG"]{background:rgba(155,89,182,.22);border-bottom:2px solid var(--org)}
+.ent-span[data-parent="EVENT"]{background:rgba(229,115,115,.22);border-bottom:2px solid var(--event)}
+
+/* ========= BUTTONS ========= */
+.btn{padding:9px 18px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-family:inherit;transition:all .2s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:active{transform:scale(.97)}
+.btn-gold{background:var(--gold);color:var(--navy);font-weight:700}
+.btn-gold:hover{background:var(--gold2)}
+.btn-outline{background:transparent;color:var(--text2);border:1px solid var(--border2)}
+.btn-outline:hover{color:var(--text);border-color:var(--gold);background:rgba(201,168,76,.06)}
+.btn-danger{background:rgba(229,115,115,.12);color:var(--event);border:1px solid rgba(229,115,115,.3)}
+.btn-danger:hover{background:rgba(229,115,115,.22)}
+.btn-sm{padding:5px 10px;font-size:11px;border-radius:6px}
+.btn-group{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+
+/* ========= CARDS ========= */
+.card{background:var(--navy2);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:16px}
+.card-title{font-size:13px;color:var(--gold);font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;letter-spacing:.2px}
+.section-label{font-size:11px;color:var(--text3);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+
+/* ========= METRICS ========= */
+.metrics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:18px}
+.metric-card{background:var(--navy2);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center}
+.metric-val{font-size:26px;font-weight:700;color:var(--gold)}
+.metric-lbl{font-size:11px;color:var(--text3);margin-top:4px}
+
+/* ========= PROGRESS ========= */
+.prog-wrap{margin-bottom:12px}
+.prog-label{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px}
+.prog-bar{height:8px;background:var(--navy3);border-radius:4px;overflow:hidden}
+.prog-fill{height:100%;border-radius:4px;transition:width .6s ease}
+
+/* ========= TABLE ========= */
+.results-table{width:100%;border-collapse:collapse;font-size:13px}
+.results-table th{background:var(--navy3);color:var(--text2);padding:10px 14px;text-align:right;border-bottom:1px solid var(--border);font-weight:600;font-size:12px}
+.results-table td{padding:9px 14px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
+.results-table tr:hover td{background:rgba(255,255,255,.025)}
+
+/* ========= CORPUS LIST ========= */
+.corpus-item{background:var(--navy3);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;transition:border .2s}
+.corpus-item:hover{border-color:var(--border2)}
+.corpus-info{flex:1}
+.corpus-title{font-size:13px;font-weight:600;margin-bottom:3px}
+.corpus-meta{font-size:11px;color:var(--text3)}
+.corpus-tags{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap}
+.mini-tag{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500}
+
+/* ========= RANGE ========= */
+.range-wrap{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+input[type=range]{accent-color:var(--gold);flex:1;height:4px}
+.range-val{color:var(--gold);font-weight:700;min-width:38px;font-size:15px}
+
+/* ========= NOTIFICATION ========= */
+.notif{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--navy2);border:1px solid var(--gold);color:var(--gold);padding:9px 22px;border-radius:10px;font-size:13px;z-index:99999;opacity:0;transition:opacity .3s;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.5)}
+
+/* ========= MISC ========= */
+.divider{border:none;border-top:1px solid var(--border);margin:18px 0}
+.empty-state{text-align:center;padding:50px 20px;color:var(--text3)}
+.empty-icon{font-size:44px;margin-bottom:10px}
+.empty-title{font-size:15px;margin-bottom:6px;color:var(--text2)}
+.badge{font-size:10px;padding:3px 8px;border-radius:10px;font-weight:600;background:rgba(201,168,76,.15);color:var(--gold);margin-right:auto}
+.conf-bar-wrap{display:flex;align-items:center;gap:8px}
+.conf-bar{flex:1;height:6px;background:var(--navy3);border-radius:3px;overflow:hidden}
+.conf-fill{height:100%;border-radius:3px}
+
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--navy)}
+::-webkit-scrollbar-thumb{background:var(--navy3);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:#2d3d55}
+
+/* ========= HOME PANEL ========= */
+.home-hero{text-align:center;padding:36px 20px 28px;border-bottom:1px solid var(--border);margin-bottom:28px;position:relative;overflow:hidden}
+.home-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 60% at 50% 0%,rgba(201,168,76,.07),transparent);pointer-events:none}
+.home-univ-logo{width:72px;height:72px;border-radius:50%;background:var(--navy3);border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:28px;font-weight:900;color:var(--gold)}
+.home-univ{font-size:18px;font-weight:700;color:var(--gold);margin-bottom:4px}
+.home-faculty{font-size:14px;color:var(--text2);margin-bottom:2px}
+.home-dept{font-size:13px;color:var(--text3);margin-bottom:4px}
+.home-lab{font-size:12px;color:var(--text3);font-style:italic;border:1px solid var(--border);border-radius:20px;display:inline-block;padding:3px 14px;margin-top:6px}
+
+.home-thesis-box{background:var(--navy2);border:1px solid var(--border2);border-radius:14px;padding:24px 28px;margin-bottom:20px;text-align:center;position:relative}
+.home-thesis-label{font-size:11px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;font-weight:600}
+.home-thesis-title{font-size:17px;font-weight:700;color:var(--gold2);line-height:1.7;margin-bottom:6px}
+.home-thesis-sub{font-size:12px;color:var(--text3)}
+
+.home-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-bottom:20px}
+.home-card{background:var(--navy2);border:1px solid var(--border);border-radius:12px;padding:18px 20px}
+.home-card-title{font-size:11px;color:var(--gold);font-weight:700;letter-spacing:.5px;margin-bottom:14px;display:flex;align-items:center;gap:7px;text-transform:uppercase}
+.home-person{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.home-person:last-child{border:none;padding-bottom:0}
+.home-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.home-person-info{}
+.home-person-name{font-size:13px;font-weight:600;color:var(--text)}
+.home-person-role{font-size:11px;color:var(--text3)}
+
+.home-footer{text-align:center;padding:18px;font-size:12px;color:var(--text3);border-top:1px solid var(--border)}
+.home-year{color:var(--gold);font-weight:600}
+
+.start-btn{display:inline-flex;align-items:center;gap:8px;margin-top:18px;padding:11px 28px;background:var(--gold);color:var(--navy);font-weight:700;font-size:14px;border-radius:10px;border:none;cursor:pointer;transition:all .2s}
+.start-btn:hover{background:var(--gold2);transform:translateY(-1px)}
+
+@media(max-width:700px){
+  .stats-bar{display:none}
+  .tab{padding:10px 12px;font-size:12px}
+  .content{padding:14px}
+  .home-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ====== HEADER ====== -->
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">خ</div>
+    <div>
+      <div class="logo-text">منصة تحليل الكيانات الخطابية</div>
+      <div class="logo-sub">Named Entity Recognition — Academic Discourse</div>
+    </div>
+  </div>
+  <div class="stats-bar">
+    <div class="stat">
+      <div class="stat-n" id="hdr-docs">0</div>
+      <div class="stat-l">نص تدريبي</div>
+    </div>
+    <div class="stat">
+      <div class="stat-n" id="hdr-ents">0</div>
+      <div class="stat-l">كيان مُعلَّم</div>
+    </div>
+    <div class="stat">
+      <div class="stat-n" id="hdr-types">5</div>
+      <div class="stat-l">نوع رئيسي</div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== TABS ====== -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('home')">🏠 الرئيسية</div>
+  <div class="tab" onclick="switchTab('train')">📚 التدريب والتعليق</div>
+  <div class="tab" onclick="switchTab('eval')">🧪 التقييم والاختبار</div>
+  <div class="tab" onclick="switchTab('extract')">🔍 الاستخراج التلقائي</div>
+  <div class="tab" onclick="switchTab('corpus')">🗄️ إدارة المدونة</div>
+</div>
+
+<!-- ====== MAIN CONTENT ====== -->
+<div class="content">
+
+  <!-- ===== PANEL: HOME ===== -->
+  <div id="panel-home" class="panel active">
+
+    <!-- University info -->
+    <div class="home-hero">
+      <div class="home-univ-logo">ج</div>
+      <div class="home-univ">جامعة ابن خلدون — تيارت</div>
+      <div class="home-faculty">كلية الآداب واللغات</div>
+      <div class="home-dept">قسم اللغة والأدب العربي</div>
+      <div class="home-lab">مخبر الدراسات النحوية واللغوية بين التراث والحداثة في الجزائر</div>
+    </div>
+
+    <!-- Thesis info -->
+    <div class="home-thesis-box">
+      <div class="home-thesis-label">مذكرة ماستر</div>
+      <div class="home-thesis-title">تحليل الخطاب الأكاديمي باستخدام تقنيات التعرف على الكيانات الخطابية</div>
+      <div class="home-thesis-sub">Academic Discourse Analysis Using Discourse Entity Recognition Techniques</div>
+    </div>
+
+    <!-- People grid -->
+    <div class="home-grid">
+
+      <!-- Students -->
+      <div class="home-card">
+        <div class="home-card-title">
+          <span style="font-size:16px">👩‍🎓</span> الطالبتان
+        </div>
+        <div class="home-person">
+          <div class="home-avatar" style="background:rgba(74,144,217,.15);color:var(--person)">ر</div>
+          <div class="home-person-info">
+            <div class="home-person-name">بن سواك رشيدة</div>
+            <div class="home-person-role">طالبة ماستر — لغة وأدب عربي</div>
+          </div>
+        </div>
+        <div class="home-person">
+          <div class="home-avatar" style="background:rgba(74,144,217,.15);color:var(--person)">ش</div>
+          <div class="home-person-info">
+            <div class="home-person-name">مجادي شيماء</div>
+            <div class="home-person-role">طالبة ماستر — لغة وأدب عربي</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Supervisor -->
+      <div class="home-card">
+        <div class="home-card-title">
+          <span style="font-size:16px">👨‍🏫</span> المشرف
+        </div>
+        <div class="home-person">
+          <div class="home-avatar" style="background:rgba(201,168,76,.15);color:var(--gold)">م</div>
+          <div class="home-person-info">
+            <div class="home-person-name">أ.د بن جلول مختار</div>
+            <div class="home-person-role">أستاذ دكتور — مشرف المذكرة</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Committee -->
+      <div class="home-card">
+        <div class="home-card-title">
+          <span style="font-size:16px">👨‍⚖️</span> لجنة المناقشة
+        </div>
+        <div class="home-person">
+          <div class="home-avatar" style="background:rgba(155,89,182,.15);color:var(--org)">ع</div>
+          <div class="home-person-info">
+            <div class="home-person-name">أ.د حدوارة عمر</div>
+            <div class="home-person-role">رئيس لجنة المناقشة</div>
+          </div>
+        </div>
+        <div class="home-person">
+          <div class="home-avatar" style="background:rgba(38,166,154,.15);color:var(--concept)">ص</div>
+          <div class="home-person-info">
+            <div class="home-person-name">د. بوكلخة صورية</div>
+            <div class="home-person-role">عضو مناقش</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /home-grid -->
+
+    <!-- CTA -->
+    <div style="text-align:center;padding:10px 0 20px">
+      <button class="start-btn" onclick="switchTab('train')">
+        📚 ابدأ التدريب والتعليق ←
+      </button>
+    </div>
+
+    <div class="home-footer">
+      السنة الجامعية <span class="home-year">2024 — 2025</span> &nbsp;|&nbsp;
+      منصة تحليل الكيانات الخطابية — NER Platform
+    </div>
+
+  </div><!-- /panel-home -->
+
+  <!-- ===== PANEL: TRAINING ===== -->
+  <div id="panel-train" class="panel">
+
+    <!-- Legend -->
+    <div class="entity-legend" id="main-legend"></div>
+
+    <!-- Input card -->
+    <div class="card">
+      <div class="card-title">✏️ إضافة نص تدريبي جديد</div>
+      <div class="section-label">عنوان النص</div>
+      <input type="text" id="doc-title" class="text-input" style="min-height:42px;margin-bottom:12px" placeholder="مثال: مقتطف من مقال أكاديمي حول اللسانيات...">
+      <div class="section-label">نص الخطاب الأكاديمي</div>
+      <textarea class="text-input" id="train-input" rows="5" placeholder="الصق هنا نص الخطاب الأكاديمي العربي الذي تريد تعليق كياناته..."></textarea>
+      <div class="btn-group" style="margin-top:12px">
+        <button class="btn btn-gold" onclick="loadTrainText()">📄 تحميل للتعليق</button>
+        <button class="btn btn-outline" onclick="loadSampleTrain()">💡 نص نموذجي</button>
+        <button class="btn btn-outline" onclick="clearTrainInput()">🗑️ مسح الحقول</button>
+      </div>
+    </div>
+
+    <!-- Annotation interface -->
+    <div class="card" id="annotation-card" style="display:none">
+      <div class="card-title">
+        🖊️ واجهة التعليق اليدوي
+        <span class="badge" id="sel-type-badge">النوع المحدد: —</span>
+      </div>
+      <div style="margin-bottom:12px">
+        <div class="section-label" style="margin-bottom:8px">اختر نوع الكيان الذي ستعلّقه:</div>
+        <div class="entity-legend" id="annotate-legend"></div>
+      </div>
+      <div class="section-label">حدّد الكيانات بالسحب ثم ستُعلَّق بالنوع المختار — انقر على كيان مُعلَّق لحذفه</div>
+      <div class="text-display" id="annotate-display" onmouseup="handleSelection()"></div>
+      <div class="btn-group" style="margin-top:14px">
+        <button class="btn btn-gold" onclick="saveAnnotatedDoc()">💾 حفظ في المدونة</button>
+        <button class="btn btn-danger" onclick="clearAnnotations()">↺ مسح جميع التعليقات</button>
+      </div>
+    </div>
+
+    <!-- Entities list -->
+    <div class="card" id="train-entities-card" style="display:none">
+      <div class="card-title">📋 الكيانات المعلَّقة في هذا النص</div>
+      <div id="train-entities-list"></div>
+    </div>
+
+  </div><!-- /panel-train -->
+
+
+  <!-- ===== PANEL: EVALUATION ===== -->
+  <div id="panel-eval" class="panel">
+
+    <div class="card">
+      <div class="card-title">⚙️ إعدادات التقييم</div>
+      <div class="section-label">نسبة بيانات الاختبار من المدونة</div>
+      <div class="range-wrap">
+        <input type="range" min="10" max="50" step="5" value="20" id="split-range"
+          oninput="document.getElementById('split-val').textContent=this.value+'%'">
+        <span class="range-val" id="split-val">20%</span>
+      </div>
+      <p style="font-size:12px;color:var(--text3);margin-bottom:14px">
+        ستُستخدم هذه النسبة من النصوص للاختبار والباقي للتدريب. تأكد من وجود نصوص كافية في المدونة.
+      </p>
+      <button class="btn btn-gold" onclick="runEvaluation()">▶ تشغيل التقييم</button>
+    </div>
+
+    <div id="eval-results" style="display:none">
+      <div class="metrics-grid" id="eval-metrics"></div>
+      <div class="card">
+        <div class="card-title">📊 مقاييس الأداء حسب نوع الكيان</div>
+        <div id="per-class-metrics"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">📝 نماذج من مجموعة الاختبار</div>
+        <div id="eval-samples"></div>
+      </div>
+    </div>
+
+    <div id="eval-empty" class="empty-state">
+      <div class="empty-icon">🧪</div>
+      <div class="empty-title">لا توجد نتائج بعد</div>
+      <div>أضف نصوصًا مُعلَّقة في المدونة ثم اضغط «تشغيل التقييم»</div>
+    </div>
+
+  </div><!-- /panel-eval -->
+
+
+  <!-- ===== PANEL: EXTRACTION ===== -->
+  <div id="panel-extract" class="panel">
+
+    <div class="card">
+      <div class="card-title">🔍 إدخال نص جديد للتحليل التلقائي</div>
+      <textarea class="text-input" id="extract-input" rows="6"
+        placeholder="الصق هنا نصًا أكاديميًا جديدًا لم يُستخدم في التدريب — سيستخرج النظام كياناته تلقائيًا..."></textarea>
+      <div class="btn-group" style="margin-top:12px">
+        <button class="btn btn-gold" onclick="runExtraction()">🚀 استخراج الكيانات</button>
+        <button class="btn btn-outline" onclick="loadSampleExtract()">📄 نص نموذجي</button>
+        <button class="btn btn-outline" onclick="clearExtract()">🗑️ مسح</button>
+      </div>
+    </div>
+
+    <div id="extract-result" style="display:none">
+
+      <div class="metrics-grid" id="extract-stats"></div>
+
+      <div class="card">
+        <div class="card-title">📖 النص مع الكيانات المستخرجة</div>
+        <div class="text-display" id="extract-display" style="line-height:2.4"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📋 جدول الكيانات المستخرجة</div>
+        <div style="overflow-x:auto">
+          <table class="results-table">
+            <thead>
+              <tr>
+                <th style="width:40px">#</th>
+                <th>الكيان</th>
+                <th style="width:100px">النوع</th>
+                <th style="width:130px">طريقة الاستخراج</th>
+                <th style="width:130px">نسبة الثقة</th>
+              </tr>
+            </thead>
+            <tbody id="extract-table"></tbody>
+          </table>
+        </div>
+        <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-outline" onclick="exportCSV()">⬇ تصدير CSV</button>
+          <button class="btn btn-outline" onclick="exportJSON()">⬇ تصدير JSON</button>
+        </div>
+      </div>
+
+    </div><!-- /extract-result -->
+
+  </div><!-- /panel-extract -->
+
+
+  <!-- ===== PANEL: CORPUS ===== -->
+  <div id="panel-corpus" class="panel">
+
+    <div class="btn-group">
+      <button class="btn btn-gold" onclick="switchTab('train')">➕ إضافة نص جديد</button>
+      <button class="btn btn-outline" onclick="importCorpus()">📂 استيراد JSON</button>
+      <button class="btn btn-outline" onclick="exportCorpus()">⬇ تصدير المدونة</button>
+      <button class="btn btn-danger" onclick="clearCorpus()">🗑️ حذف الكل</button>
+    </div>
+
+    <div id="corpus-list"></div>
+
+  </div><!-- /panel-corpus -->
+
+</div><!-- /content -->
+</div><!-- /app -->
+
+<!-- NOTIFICATION -->
+<div class="notif" id="notif"></div>
+
+<!-- HIDDEN FILE INPUT for import -->
+<input type="file" id="import-file" accept=".json" style="display:none" onchange="handleImport(event)">
+
+<script>
+/* ========================================================
+   DATA & ENTITY TYPES
+   ======================================================== */
+const ENTITY_TYPES = {
+  // === شخص ===
+  'PERSON.RESEARCHER': { label:'باحث',          hex:'#4a90d9', parent:'PERSON',   parentLabel:'شخص' },
+  'PERSON.PROFESSOR':  { label:'أستاذ',          hex:'#5ba3e8', parent:'PERSON',   parentLabel:'شخص' },
+  'PERSON.AUTHOR':     { label:'مؤلف',           hex:'#2d72c0', parent:'PERSON',   parentLabel:'شخص' },
+  'PERSON.STUDENT':    { label:'طالب',           hex:'#85c1f5', parent:'PERSON',   parentLabel:'شخص' },
+  // === مكان ===
+  'LOCATION.CITY':     { label:'مدينة',          hex:'#4caf7d', parent:'LOCATION', parentLabel:'مكان' },
+  'LOCATION.COUNTRY':  { label:'دولة',           hex:'#66bb6a', parent:'LOCATION', parentLabel:'مكان' },
+  'LOCATION.REGION':   { label:'منطقة/ولاية',  hex:'#2e7d32', parent:'LOCATION', parentLabel:'مكان' },
+  'LOCATION.PLACE':    { label:'موقع',           hex:'#a5d6a7', parent:'LOCATION', parentLabel:'مكان' },
+  // === زمن ===
+  'TIME.YEAR':         { label:'سنة/عام',       hex:'#e8a030', parent:'TIME',     parentLabel:'زمن' },
+  'TIME.ERA':          { label:'حقبة',           hex:'#ffb74d', parent:'TIME',     parentLabel:'زمن' },
+  'TIME.CENTURY':      { label:'قرن',            hex:'#f57c00', parent:'TIME',     parentLabel:'زمن' },
+  'TIME.DATE':         { label:'تاريخ',          hex:'#ffe082', parent:'TIME',     parentLabel:'زمن' },
+  // === مؤسسة ===
+  'ORG.UNIVERSITY':    { label:'جامعة',          hex:'#9b59b6', parent:'ORG',      parentLabel:'مؤسسة' },
+  'ORG.LAB':           { label:'مختبر/مركز',    hex:'#ba68c8', parent:'ORG',      parentLabel:'مؤسسة' },
+  'ORG.MINISTRY':      { label:'وزارة/هيئة',    hex:'#6a1b9a', parent:'ORG',      parentLabel:'مؤسسة' },
+  'ORG.JOURNAL':       { label:'مجلة/دورية',   hex:'#ce93d8', parent:'ORG',      parentLabel:'مؤسسة' },
+  // === حدث ===
+  'EVENT.CONFERENCE':  { label:'مؤتمر',          hex:'#e57373', parent:'EVENT',    parentLabel:'حدث' },
+  'EVENT.SEMINAR':     { label:'ندوة',           hex:'#ef9a9a', parent:'EVENT',    parentLabel:'حدث' },
+  'EVENT.SYMPOSIUM':   { label:'ملتقى',          hex:'#c62828', parent:'EVENT',    parentLabel:'حدث' },
+  'EVENT.WORKSHOP':    { label:'حلقة دراسية',  hex:'#ff8a80', parent:'EVENT',    parentLabel:'حدث' },
+};
+
+const ENTITY_HIERARCHY = [
+  { key:'PERSON',   label:'شخص',    hex:'#4a90d9', children:['PERSON.RESEARCHER','PERSON.PROFESSOR','PERSON.AUTHOR','PERSON.STUDENT'] },
+  { key:'LOCATION', label:'مكان',   hex:'#4caf7d', children:['LOCATION.CITY','LOCATION.COUNTRY','LOCATION.REGION','LOCATION.PLACE'] },
+  { key:'TIME',     label:'زمن',    hex:'#e8a030', children:['TIME.YEAR','TIME.ERA','TIME.CENTURY','TIME.DATE'] },
+  { key:'ORG',      label:'مؤسسة', hex:'#9b59b6', children:['ORG.UNIVERSITY','ORG.LAB','ORG.MINISTRY','ORG.JOURNAL'] },
+  { key:'EVENT',    label:'حدث',    hex:'#e57373', children:['EVENT.CONFERENCE','EVENT.SEMINAR','EVENT.SYMPOSIUM','EVENT.WORKSHOP'] },
+];
+
+let corpus = [];
+let currentDoc = { title:'', text:'', annotations:[] };
+let selectedEntityType = 'PERSON.RESEARCHER';
+let lastExtracted = [];
+
+/* ========================================================
+   PERSISTENCE
+   ======================================================== */
+function loadCorpus(){
+  try{ corpus = JSON.parse(localStorage.getItem('ner_corpus')||'[]'); }
+  catch(e){ corpus=[]; }
+  if(corpus.length===0) seedSampleData();
+  updateHeaderStats();
+}
+
+function saveCorpus(){
+  localStorage.setItem('ner_corpus', JSON.stringify(corpus));
+  updateHeaderStats();
+}
+
+function updateHeaderStats(){
+  document.getElementById('hdr-docs').textContent = corpus.length;
+  document.getElementById('hdr-ents').textContent =
+    corpus.reduce((s,d)=>s+(d.annotations||[]).length, 0);
+}
+
+function seedSampleData(){
+  corpus = [
+    {
+      id:1001, title:'نموذج 1 — مؤتمر اللسانيات في تيارت',
+      text:'أشار الدكتور خليل حليمي في مؤتمر قسنطينة سنة 2019 إلى أن جامعة تيارت في ولاية تيارت تضطلع بتطوير البحث العلمي.',
+      annotations:[
+        {text:'الدكتور خليل حليمي', type:'PERSON.RESEARCHER', start:5,  end:23},
+        {text:'مؤتمر قسنطينة',      type:'EVENT.CONFERENCE',  start:27, end:41},
+        {text:'سنة 2019',            type:'TIME.YEAR',         start:42, end:50},
+        {text:'جامعة تيارت',        type:'ORG.UNIVERSITY',    start:58, end:69},
+        {text:'ولاية تيارت',        type:'LOCATION.REGION',   start:73, end:84},
+      ]
+    },
+    {
+      id:1002, title:'نموذج 2 — الملتقى الوطني للغويات',
+      text:'انعقد الملتقى الوطني للغويات في مدينة وهران سنة 2021 برئاسة الأستاذ نعمان بوقرة من وزارة التعليم العالي.',
+      annotations:[
+        {text:'الملتقى الوطني للغويات', type:'EVENT.SYMPOSIUM',  start:6,  end:28},
+        {text:'مدينة وهران',            type:'LOCATION.CITY',    start:32, end:43},
+        {text:'سنة 2021',               type:'TIME.YEAR',         start:44, end:52},
+        {text:'الأستاذ نعمان بوقرة',   type:'PERSON.PROFESSOR', start:61, end:80},
+        {text:'وزارة التعليم العالي',  type:'ORG.MINISTRY',     start:84, end:104},
+      ]
+    },
+    {
+      id:1003, title:'نموذج 3 — مجلة اللسان العربي وجامعة الجزائر',
+      text:'نشرت الباحثة سامية بن عمر بحثها في مجلة اللسان العربي التابعة لجامعة الجزائر خلال القرن الحادي والعشرين بمدينة الرباط.',
+      annotations:[
+        {text:'الباحثة سامية بن عمر',   type:'PERSON.RESEARCHER', start:6,  end:26},
+        {text:'مجلة اللسان العربي',     type:'ORG.JOURNAL',       start:35, end:53},
+        {text:'جامعة الجزائر',          type:'ORG.UNIVERSITY',    start:63, end:76},
+        {text:'القرن الحادي والعشرين', type:'TIME.CENTURY',      start:83, end:104},
+        {text:'مدينة الرباط',           type:'LOCATION.CITY',     start:106,end:118},
+      ]
+    },
+  ];
+  saveCorpus();
+}
+
+/* ========================================================
+   UI HELPERS
+   ======================================================== */
+function notify(msg){
+  const n = document.getElementById('notif');
+  n.textContent = msg; n.style.opacity = 1;
+  clearTimeout(n._t);
+  n._t = setTimeout(()=>n.style.opacity=0, 2400);
+}
+
+function switchTab(t){
+  const keys = ['home','train','eval','extract','corpus'];
+  document.querySelectorAll('.tab').forEach((el,i)=>
+    el.classList.toggle('active', keys[i]===t));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+t).classList.add('active');
+  if(t==='corpus') renderCorpus();
+}
+
+function escHtml(s){
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;');
+}
+
+/* ========================================================
+   ENTITY TYPE SELECTION & LEGEND BUILD
+   ======================================================== */
+function buildAllLegends(){
+  buildLegend('main-legend');
+  buildLegend('annotate-legend');
+}
+
+function buildLegend(id){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.innerHTML = ENTITY_HIERARCHY.map(g=>`
+    <div class="entity-group">
+      <span class="tag parent-tag" data-parent="${g.key}"
+            onclick="toggleSubtypes(this)">
+        <span class="tag-dot" style="background:${g.hex}"></span>
+        ${g.label} <span class="sub-arrow">▾</span>
+      </span>
+      <div class="subtypes-panel" style="display:none">
+        ${g.children.map(ck=>{
+          const et=ENTITY_TYPES[ck];
+          return `<span class="tag sub-tag" data-parent="${g.key}" data-type="${ck}"
+                        onclick="selectEntityType('${ck}')">${et.label}</span>`;
+        }).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function toggleSubtypes(parentEl){
+  const group = parentEl.closest('.entity-group');
+  const panel = group.querySelector('.subtypes-panel');
+  const arrow = group.querySelector('.sub-arrow');
+  const isOpen = panel.style.display !== 'none';
+  panel.style.display = isOpen ? 'none' : 'flex';
+  arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
+}
+
+function selectEntityType(type){
+  selectedEntityType = type;
+  const et = ENTITY_TYPES[type] || {label:type, parentLabel:''};
+  const display = et.parentLabel ? et.parentLabel+' ← '+et.label : et.label;
+  document.getElementById('sel-type-badge').textContent = 'النوع المحدد: '+display;
+  document.querySelectorAll('.sub-tag').forEach(el=>{
+    el.classList.toggle('selected', el.dataset.type===type);
+  });
+  if(et.parent){
+    document.querySelectorAll('.entity-group').forEach(group=>{
+      const pt = group.querySelector('[data-parent="'+et.parent+'"].parent-tag');
+      if(pt){
+        const panel = group.querySelector('.subtypes-panel');
+        const arrow = group.querySelector('.sub-arrow');
+        if(panel && panel.style.display==='none'){
+          panel.style.display='flex';
+          if(arrow) arrow.style.transform='rotate(180deg)';
+        }
+      }
+    });
+  }
+}
+
+/* ========================================================
+   TRAINING — LOAD TEXT
+   ======================================================== */
+function loadTrainText(){
+  const title = document.getElementById('doc-title').value.trim() || 'نص بدون عنوان';
+  const text  = document.getElementById('train-input').value.trim();
+  if(!text){ notify('⚠️ أدخل نصًا أولًا'); return; }
+  currentDoc = { title, text, annotations:[] };
+  renderAnnotateDisplay();
+  document.getElementById('annotation-card').style.display = 'block';
+  document.getElementById('train-entities-card').style.display = 'none';
+  selectEntityType('PERSON.RESEARCHER');
+  document.getElementById('annotation-card').scrollIntoView({behavior:'smooth'});
+}
+
+function loadSampleTrain(){
+  document.getElementById('doc-title').value = 'نموذج تدريبي جديد — ندوة اللسانيات';
+  document.getElementById('train-input').value =
+    'أشار الأستاذ خالد بن علي في ندوة علمية بمدينة قسنطينة سنة 2022 إلى أن مختبر اللسانيات بجامعة منتوري يعمل على تطوير البحث في ولاية قسنطينة منذ مطلع القرن الحادي والعشرين.';
+}
+
+function clearTrainInput(){
+  document.getElementById('doc-title').value = '';
+  document.getElementById('train-input').value = '';
+  document.getElementById('annotation-card').style.display = 'none';
+  document.getElementById('train-entities-card').style.display = 'none';
+  currentDoc = { title:'', text:'', annotations:[] };
+}
+
+/* ========================================================
+   ANNOTATION — RENDER
+   ======================================================== */
+function renderAnnotateDisplay(){
+  document.getElementById('annotate-display').innerHTML =
+    buildAnnotatedHTML(currentDoc.text, currentDoc.annotations);
+  renderTrainEntitiesList();
+}
+
+function buildAnnotatedHTML(text, anns){
+  if(!anns || anns.length===0) return escHtml(text);
+  const sorted = [...anns].sort((a,b)=>a.start-b.start);
+  let result='', pos=0;
+  for(const a of sorted){
+    if(a.start > pos) result += escHtml(text.slice(pos, a.start));
+    const et = ENTITY_TYPES[a.type] || { label:a.type, hex:'#888', parent:a.type, parentLabel:'' };
+    const pk = et.parent || a.type;
+    result += `<span class="ent-span" data-parent="${pk}" data-type="${a.type}"
+      title="انقر لحذف: ${et.parentLabel||pk} — ${et.label}"
+      onclick="removeAnnotation(${a.start},${a.end})"
+    >${escHtml(text.slice(a.start, a.end))}<sup>${et.label}</sup></span>`;
+    pos = a.end;
+  }
+  if(pos < text.length) result += escHtml(text.slice(pos));
+  return result;
+}
+
+/* ========================================================
+   ANNOTATION — SELECTION HANDLER
+   ======================================================== */
+function handleSelection(){
+  const sel = window.getSelection();
+  if(!sel || sel.rangeCount===0 || sel.isCollapsed) return;
+  const selText = sel.toString().trim();
+  if(!selText){ sel.removeAllRanges(); return; }
+  const container = document.getElementById('annotate-display');
+  if(!container.contains(sel.getRangeAt(0).commonAncestorContainer)){
+    sel.removeAllRanges(); return;
+  }
+  // Find best match in original text
+  const rawText = currentDoc.text;
+  let idx = rawText.indexOf(selText);
+  if(idx === -1){
+    notify('⚠️ لم يُعثر على النص المحدد بدقة'); sel.removeAllRanges(); return;
+  }
+  // Check overlap
+  const overlaps = currentDoc.annotations.some(a =>
+    (idx >= a.start && idx < a.end) ||
+    (idx + selText.length > a.start && idx + selText.length <= a.end) ||
+    (idx <= a.start && idx + selText.length >= a.end)
+  );
+  if(overlaps){
+    notify('⚠️ هذا النص متداخل مع تعليق موجود — انقر على الكيان لحذفه أولًا');
+    sel.removeAllRanges(); return;
+  }
+  currentDoc.annotations.push({
+    text: selText, type: selectedEntityType,
+    start: idx, end: idx + selText.length
+  });
+  currentDoc.annotations.sort((a,b)=>a.start-b.start);
+  sel.removeAllRanges();
+  renderAnnotateDisplay();
+  const et = ENTITY_TYPES[selectedEntityType];
+  notify(`✅ تم تعليق: "${selText}" كـ ${et.label}`);
+}
+
+function removeAnnotation(start, end){
+  currentDoc.annotations = currentDoc.annotations.filter(
+    a => !(a.start===start && a.end===end)
+  );
+  renderAnnotateDisplay();
+  notify('🗑️ تم حذف التعليق');
+}
+
+function clearAnnotations(){
+  if(!currentDoc.annotations.length){ notify('لا توجد تعليقات'); return; }
+  currentDoc.annotations = [];
+  renderAnnotateDisplay();
+  notify('↺ تم مسح جميع التعليقات');
+}
+
+function renderTrainEntitiesList(){
+  const card = document.getElementById('train-entities-card');
+  const list = document.getElementById('train-entities-list');
+  if(!currentDoc.annotations.length){ card.style.display='none'; return; }
+  card.style.display = 'block';
+  list.innerHTML = currentDoc.annotations.map((a,i)=>{
+    const et = ENTITY_TYPES[a.type] || { label:a.type, hex:'#888', parent:a.type, parentLabel:'' };
+    const pk = et.parent || a.type;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+      <span style="color:var(--text3);font-size:11px;min-width:22px">${i+1}</span>
+      <span class="ent-span" data-parent="${pk}" data-type="${a.type}" style="cursor:default">${escHtml(a.text)}</span>
+      <span style="font-size:11px;color:var(--text3)">${et.parentLabel||pk}</span>
+      <span style="font-size:12px;color:${et.hex};margin-right:4px">← ${et.label}</span>
+      <button class="btn btn-danger btn-sm" style="margin-right:auto"
+        onclick="removeAnnotation(${a.start},${a.end})">✕ حذف</button>
+    </div>`;
+  }).join('');
+}
+
+/* ========================================================
+   SAVE TO CORPUS
+   ======================================================== */
+function saveAnnotatedDoc(){
+  if(!currentDoc.annotations.length){ notify('⚠️ أضف تعليقات أولًا'); return; }
+  const existing = corpus.findIndex(d => d.title === currentDoc.title);
+  const doc = { id: Date.now(), ...currentDoc };
+  if(existing >= 0) corpus[existing] = doc;
+  else corpus.push(doc);
+  saveCorpus();
+  notify(`💾 تم حفظ "${currentDoc.title}" في المدونة (${currentDoc.annotations.length} كيان)`);
+}
+
+/* ========================================================
+   NER ENGINE — REGEX PATTERNS
+   ======================================================== */
+const NER_PATTERNS = {
+  // شخص — sub-types
+  'PERSON.RESEARCHER':[
+    /\b(الباحث|الباحثة|الدكتور|الدكتورة)\s+[\u0600-\u06FF]{3,}\s+[\u0600-\u06FF]{3,}/g,
+    /\b(الباحث|الباحثة|الدكتور|الدكتورة)\s+[\u0600-\u06FF]{4,}/g,
+  ],
+  'PERSON.PROFESSOR':[
+    /\b(الأستاذ|البروفيسور|أ\.د)\s+[\u0600-\u06FF]{3,}\s+[\u0600-\u06FF]{3,}/g,
+    /\b(الأستاذ|البروفيسور)\s+[\u0600-\u06FF]{4,}/g,
+  ],
+  'PERSON.AUTHOR':[
+    /\b(المؤلف|المؤلفة|الكاتب|الكاتبة)\s+[\u0600-\u06FF]{3,}\s+[\u0600-\u06FF]{3,}/g,
+  ],
+  // مكان — sub-types
+  'LOCATION.CITY':[
+    /\b(مدينة)\s+[\u0600-\u06FF]+/g,
+  ],
+  'LOCATION.COUNTRY':[
+    /\b(دولة|بلد)\s+[\u0600-\u06FF]+/g,
+  ],
+  'LOCATION.REGION':[
+    /\b(منطقة|ولاية|إقليم|محافظة)\s+[\u0600-\u06FF]+/g,
+  ],
+  // زمن — sub-types
+  'TIME.YEAR':[
+    /\b(سنة|عام)\s+\d{4}/g,
+    /\b\d{4}\s*م\b/g,
+  ],
+  'TIME.ERA':[
+    /\b(منذ\s+التسعينيات|منذ\s+الثمانينيات|منذ\s+السبعينيات|مطلع\s+الألفية\s+[\u0600-\u06FF]+)/g,
+  ],
+  'TIME.CENTURY':[
+    /\b(في\s+القرن\s+[\u0600-\u06FF]+|خلال\s+القرن\s+[\u0600-\u06FF]+)/g,
+    /\bالقرن\s+[\u0600-\u06FF]+\s+و[\u0600-\u06FF]+/g,
+  ],
+  // مؤسسة — sub-types
+  'ORG.UNIVERSITY':[
+    /\b(جامعة)\s+[\u0600-\u06FF\s]{3,20}/g,
+  ],
+  'ORG.LAB':[
+    /\b(مختبر|مركز)\s+[\u0600-\u06FF\s]{3,20}/g,
+  ],
+  'ORG.MINISTRY':[
+    /\b(وزارة|هيئة)\s+[\u0600-\u06FF\s]{3,20}/g,
+  ],
+  'ORG.JOURNAL':[
+    /\b(مجلة|دورية)\s+[\u0600-\u06FF\s]{3,20}/g,
+  ],
+  // حدث — sub-types
+  'EVENT.CONFERENCE':[
+    /\b(المؤتمر|مؤتمر)\s+[\u0600-\u06FF\s]{3,22}/g,
+  ],
+  'EVENT.SEMINAR':[
+    /\b(الندوة|ندوة)\s+[\u0600-\u06FF\s]{3,22}/g,
+  ],
+  'EVENT.SYMPOSIUM':[
+    /\b(الملتقى|ملتقى)\s+[\u0600-\u06FF\s]{3,22}/g,
+  ],
+  'EVENT.WORKSHOP':[
+    /\b(ورشة|حلقة)\s+[\u0600-\u06FF\s]{3,22}/g,
+  ],
+};
+
+function extractEntities(text){
+  const results = [];
+  // 1. Gazetteer from corpus
+  for(const doc of corpus){
+    for(const a of (doc.annotations||[])){
+      let idx = 0;
+      while((idx = text.indexOf(a.text, idx)) !== -1){
+        results.push({
+          text: a.text, type: a.type,
+          start: idx, end: idx + a.text.length,
+          method: 'gazetteer', confidence: 0.92
+        });
+        idx += a.text.length;
+      }
+    }
+  }
+  // 2. Regex
+  for(const [type, pats] of Object.entries(NER_PATTERNS)){
+    for(const pat of pats){
+      pat.lastIndex = 0;
+      let m;
+      while((m = pat.exec(text)) !== null){
+        results.push({
+          text: m[0].trim(), type,
+          start: m.index, end: m.index + m[0].length,
+          method: 'regex', confidence: 0.74
+        });
+      }
+    }
+  }
+  // 3. Deduplicate — keep highest confidence, resolve overlaps
+  results.sort((a,b)=>a.start-b.start || b.confidence-a.confidence);
+  const final = [];
+  for(const r of results){
+    const overlap = final.some(f=>
+      (r.start>=f.start && r.start<f.end) ||
+      (r.end>f.start && r.end<=f.end) ||
+      (r.start<=f.start && r.end>=f.end)
+    );
+    if(!overlap) final.push(r);
+  }
+  return final.sort((a,b)=>a.start-b.start);
+}
+
+/* ========================================================
+   EXTRACTION PANEL
+   ======================================================== */
+function runExtraction(){
+  const text = document.getElementById('extract-input').value.trim();
+  if(!text){ notify('⚠️ أدخل نصًا للتحليل'); return; }
+  lastExtracted = extractEntities(text);
+  // Highlighted text
+  document.getElementById('extract-display').innerHTML =
+    buildAnnotatedHTML(text, lastExtracted);
+  // Stats cards
+  const counts = {};
+  for(const e of lastExtracted){
+    const pk=(ENTITY_TYPES[e.type]||{parent:e.type}).parent||e.type;
+    counts[pk]=(counts[pk]||0)+1;
+  }
+  document.getElementById('extract-stats').innerHTML =
+    ENTITY_HIERARCHY.filter(g=>counts[g.key]).map(g=>{
+      return `<div class="metric-card">
+        <div class="metric-val" style="color:${g.hex}">${counts[g.key]}</div>
+        <div class="metric-lbl">${g.label}</div>
+      </div>`;
+    }).join('') +
+    `<div class="metric-card">
+       <div class="metric-val">${lastExtracted.length}</div>
+       <div class="metric-lbl">إجمالي الكيانات</div>
+    </div>`;
+  // Table
+  const tbody = document.getElementById('extract-table');
+  if(!lastExtracted.length){
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:24px">
+      لم يُعثر على كيانات — أضف نصوصًا تدريبية أكثر أو تحقق من النص المُدخَل
+    </td></tr>`;
+  } else {
+    tbody.innerHTML = lastExtracted.map((e,i)=>{
+      const et = ENTITY_TYPES[e.type] || {label:e.type, hex:'#888'};
+      const conf = Math.round(e.confidence * 100);
+      const meth = e.method==='gazetteer' ? '📖 قاموس المدونة' : '🔤 أنماط لغوية';
+      return `<tr>
+        <td style="color:var(--text3)">${i+1}</td>
+        <td><span class="ent-span" data-parent="${(ENTITY_TYPES[e.type]||{parent:e.type}).parent||e.type}" data-type="${e.type}" style="cursor:default">${escHtml(e.text)}</span></td>
+        <td><span style="font-size:11px;color:var(--text3)">${(ENTITY_TYPES[e.type]||{parentLabel:''}).parentLabel||''}</span> <span style="color:${et.hex};font-size:12px;font-weight:600">← ${et.label}</span></td>
+        <td style="color:var(--text2);font-size:12px">${meth}</td>
+        <td>
+          <div class="conf-bar-wrap">
+            <div class="conf-bar">
+              <div class="conf-fill" style="width:${conf}%;background:${et.hex}"></div>
+            </div>
+            <span style="font-size:11px;color:var(--text3);min-width:34px">${conf}%</span>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+  document.getElementById('extract-result').style.display = 'block';
+  document.getElementById('extract-result').scrollIntoView({behavior:'smooth'});
+  notify(`✅ تم استخراج ${lastExtracted.length} كيان`);
+}
+
+function loadSampleExtract(){
+  document.getElementById('extract-input').value =
+    'أقامت وزارة التعليم العالي مؤتمرًا دوليًا بمدينة الجزائر العاصمة عام 2023 برئاسة البروفيسور أحمد بن سعد، وشارك فيه باحثون من دولة الجزائر ودول المغرب العربي. كما أشارت الباحثة سامية بن عمر إلى أن ملتقى تلمسان عام 2020 شهد نقاشات واسعة حول مختبر اللسانيات بجامعة تيارت في منطقة الغرب الجزائري، فيما نشرت مجلة اللسان العربي أعمال الندوة خلال القرن الحادي والعشرين.';
+}
+
+function clearExtract(){
+  document.getElementById('extract-input').value = '';
+  document.getElementById('extract-result').style.display = 'none';
+  lastExtracted = [];
+}
+
+/* ========================================================
+   EXPORT
+   ======================================================== */
+function exportCSV(){
+  if(!lastExtracted.length){ notify('لا توجد بيانات للتصدير'); return; }
+  const BOM = '\uFEFF';
+  let csv = BOM + 'الكيان,النوع,طريقة الاستخراج,الثقة\n';
+  for(const e of lastExtracted){
+    const et = ENTITY_TYPES[e.type]||{label:e.type};
+    csv += `"${e.text}","${et.label}","${e.method==='gazetteer'?'قاموس المدونة':'أنماط لغوية'}","${Math.round(e.confidence*100)}%"\n`;
+  }
+  downloadFile('entities.csv','text/csv;charset=utf-8',csv);
+  notify('⬇ تم تصدير CSV');
+}
+
+function exportJSON(){
+  if(!lastExtracted.length){ notify('لا توجد بيانات للتصدير'); return; }
+  const data = lastExtracted.map(e=>({
+    text: e.text,
+    type: e.type,
+    typeLabel: (ENTITY_TYPES[e.type]||{label:e.type}).label,
+    start: e.start, end: e.end,
+    method: e.method,
+    confidence: Math.round(e.confidence*100)+'%'
+  }));
+  downloadFile('entities.json','application/json',JSON.stringify(data,null,2));
+  notify('⬇ تم تصدير JSON');
+}
+
+function downloadFile(name,type,content){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content],{type}));
+  a.download = name; a.click();
+}
+
+/* ========================================================
+   EVALUATION
+   ======================================================== */
+function runEvaluation(){
+  if(corpus.length < 2){ notify('⚠️ يجب وجود نصّان على الأقل في المدونة'); return; }
+  const splitPct  = parseInt(document.getElementById('split-range').value)/100;
+  const testCount = Math.max(1, Math.round(corpus.length * splitPct));
+  const testSet   = corpus.slice(-testCount);
+
+  const tp={},fp={},fn={};
+  for(const t of Object.keys(ENTITY_TYPES)) tp[t]=fp[t]=fn[t]=0;
+  let totalTP=0, totalFP=0, totalFN=0;
+
+  for(const doc of testSet){
+    const predicted = extractEntities(doc.text);
+    const goldKeys  = (doc.annotations||[]).map(a=>a.text+'|'+a.type);
+    const predKeys  = predicted.map(p=>p.text+'|'+p.type);
+    for(const g of (doc.annotations||[])){
+      if(predKeys.includes(g.text+'|'+g.type)){ tp[g.type]++; totalTP++; }
+      else{ fn[g.type]++; totalFN++; }
+    }
+    for(const p of predicted){
+      if(!goldKeys.includes(p.text+'|'+p.type)){ fp[p.type]++; totalFP++; }
+    }
+  }
+
+  const P  = totalTP/(totalTP+totalFP||1);
+  const R  = totalTP/(totalTP+totalFN||1);
+  const F1 = 2*P*R/(P+R||1);
+
+  document.getElementById('eval-metrics').innerHTML = `
+    <div class="metric-card">
+      <div class="metric-val">${Math.round(P*100)}%</div>
+      <div class="metric-lbl">الدقة Precision</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-val">${Math.round(R*100)}%</div>
+      <div class="metric-lbl">الاسترجاع Recall</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-val" style="color:var(--gold2)">${Math.round(F1*100)}%</div>
+      <div class="metric-lbl">F1-Score</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-val" style="color:var(--concept)">${testSet.length}</div>
+      <div class="metric-lbl">نصوص الاختبار</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-val" style="color:var(--person)">${corpus.length-testCount}</div>
+      <div class="metric-lbl">نصوص التدريب</div>
+    </div>
+  `;
+
+  let classHtml = '';
+  for(const g of ENTITY_HIERARCHY){
+    let gtp=0,gfp=0,gfn=0;
+    for(const ck of g.children){ gtp+=(tp[ck]||0); gfp+=(fp[ck]||0); gfn+=(fn[ck]||0); }
+    if(gtp+gfp+gfn===0) continue;
+    const gp=gtp/(gtp+gfp||1), gr=gtp/(gtp+gfn||1), gf=2*gp*gr/(gp+gr||1);
+    classHtml += `<div class="prog-wrap">
+      <div class="prog-label">
+        <span style="color:${g.hex};font-weight:700">${g.label}</span>
+        <span style="color:var(--text2)">
+          P: ${Math.round(gp*100)}% &nbsp; R: ${Math.round(gr*100)}% &nbsp;
+          <strong style="color:${g.hex}">F1: ${Math.round(gf*100)}%</strong>
+        </span>
+      </div>
+      <div class="prog-bar">
+        <div class="prog-fill" style="width:${Math.round(gf*100)}%;background:${g.hex}"></div>
+      </div>
+    </div>`;
+    for(const ck of g.children){
+      if((tp[ck]||0)+(fp[ck]||0)+(fn[ck]||0)===0) continue;
+      const et=ENTITY_TYPES[ck];
+      const sp=(tp[ck]||0)/((tp[ck]||0)+(fp[ck]||0)||1);
+      const sr=(tp[ck]||0)/((tp[ck]||0)+(fn[ck]||0)||1);
+      const sf=2*sp*sr/(sp+sr||1);
+      classHtml += `<div class="prog-wrap" style="padding-right:18px;border-right:2px solid ${g.hex}44;margin-right:8px;margin-top:-4px">
+        <div class="prog-label">
+          <span style="color:${et.hex};font-size:11px">&nbsp;↳ ${et.label}</span>
+          <span style="color:var(--text3);font-size:11px">F1: ${Math.round(sf*100)}%</span>
+        </div>
+        <div class="prog-bar" style="height:5px">
+          <div class="prog-fill" style="width:${Math.round(sf*100)}%;background:${et.hex}"></div>
+        </div>
+      </div>`;
+    }
+  }
+  document.getElementById('per-class-metrics').innerHTML =
+    classHtml || '<div style="color:var(--text3);font-size:12px">لا توجد بيانات كافية لحساب المقاييس</div>';
+
+  let sampHtml = '';
+  for(const doc of testSet.slice(0,3)){
+    const pred = extractEntities(doc.text);
+    sampHtml += `<div class="corpus-item" style="flex-direction:column;align-items:flex-start;margin-bottom:10px">
+      <div style="font-size:12px;color:var(--gold);font-weight:600;margin-bottom:8px">${escHtml(doc.title)}</div>
+      <div style="font-size:13px;margin-bottom:8px;line-height:2">${buildAnnotatedHTML(doc.text, pred)}</div>
+      <div style="font-size:11px;color:var(--text3)">
+        كيانات مستخرجة: <strong style="color:var(--text)">${pred.length}</strong> &nbsp;|&nbsp;
+        كيانات حقيقية: <strong style="color:var(--gold)">${(doc.annotations||[]).length}</strong>
+      </div>
+    </div>`;
+  }
+  document.getElementById('eval-samples').innerHTML = sampHtml || '<div style="color:var(--text3)">لا توجد نماذج</div>';
+  document.getElementById('eval-results').style.display = 'block';
+  document.getElementById('eval-empty').style.display = 'none';
+  notify(`✅ تم التقييم على ${testSet.length} نص — F1 الكلي: ${Math.round(F1*100)}%`);
+}
+
+/* ========================================================
+   CORPUS MANAGEMENT
+   ======================================================== */
+function renderCorpus(){
+  const list = document.getElementById('corpus-list');
+  if(!corpus.length){
+    list.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">🗄️</div>
+      <div class="empty-title">المدونة فارغة</div>
+      <div>أضف نصوصًا مُعلَّقة من تبويب التدريب والتعليق</div>
+    </div>`;
+    return;
+  }
+  list.innerHTML = corpus.map(doc=>{
+    const counts={};
+    for(const a of (doc.annotations||[])) counts[a.type]=(counts[a.type]||0)+1;
+    const tagsHtml = Object.entries(counts).map(([t,n])=>{
+      const et = ENTITY_TYPES[t]||{label:t,hex:'#888'};
+      return `<span class="mini-tag" style="background:${et.hex}22;color:${et.hex}">${et.label}: ${n}</span>`;
+    }).join('');
+    return `<div class="corpus-item">
+      <div class="corpus-info">
+        <div class="corpus-title">${escHtml(doc.title)}</div>
+        <div class="corpus-meta">${(doc.annotations||[]).length} كيان مُعلَّم</div>
+        <div class="corpus-tags">${tagsHtml}</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        <button class="btn btn-outline btn-sm" onclick="loadDocForEdit(${doc.id})">✏️ تعديل</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteDoc(${doc.id})">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function deleteDoc(id){
+  if(!confirm('هل تريد حذف هذا النص من المدونة؟')) return;
+  corpus = corpus.filter(d=>d.id!==id);
+  saveCorpus(); renderCorpus();
+  notify('🗑️ تم حذف النص');
+}
+
+function clearCorpus(){
+  if(!corpus.length){ notify('المدونة فارغة أصلًا'); return; }
+  if(!confirm('هل تريد حذف جميع النصوص من المدونة؟ لا يمكن التراجع عن هذا الإجراء.')) return;
+  corpus = []; saveCorpus(); renderCorpus();
+  notify('🗑️ تم مسح المدونة بالكامل');
+}
+
+function loadDocForEdit(id){
+  const doc = corpus.find(d=>d.id===id);
+  if(!doc) return;
+  document.getElementById('doc-title').value = doc.title;
+  document.getElementById('train-input').value = doc.text;
+  currentDoc = { ...doc, annotations:[...doc.annotations] };
+  switchTab('train');
+  renderAnnotateDisplay();
+  document.getElementById('annotation-card').style.display = 'block';
+  selectEntityType('PERSON.RESEARCHER');
+  notify(`📄 تم تحميل "${doc.title}" للتعديل`);
+}
+
+function exportCorpus(){
+  if(!corpus.length){ notify('المدونة فارغة'); return; }
+  downloadFile('corpus.json','application/json', JSON.stringify(corpus,null,2));
+  notify('⬇ تم تصدير المدونة');
+}
+
+function importCorpus(){ document.getElementById('import-file').click(); }
+
+function handleImport(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev=>{
+    try{
+      const data = JSON.parse(ev.target.result);
+      if(!Array.isArray(data)) throw new Error();
+      corpus = [...corpus, ...data];
+      saveCorpus(); renderCorpus();
+      notify(`✅ تم استيراد ${data.length} نص إلى المدونة`);
+    } catch(err){
+      notify('⚠️ ملف غير صالح — تأكد أنه JSON صحيح');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value='';
+}
+
+/* ========================================================
+   INIT
+   ======================================================== */
+loadCorpus();
+buildAllLegends();
+selectEntityType('PERSON.RESEARCHER');
+</script>
+</body>
+</html>
